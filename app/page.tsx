@@ -6,7 +6,7 @@ import { Box } from '@chakra-ui/react'
 export default function Page() {
   return (
     <Box bg='green' w='120px' h='150px'>
-      <Link href='/'>Editor</Link>
+      <Link href='/editor'>Editor</Link>
       <h1>Page</h1>
     </Box>
   )
