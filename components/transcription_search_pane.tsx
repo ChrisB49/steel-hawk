@@ -51,7 +51,7 @@ export function TranscriptSearchResults({ searchTerm }: { searchTerm: string }) 
 export function Transcript() {
     const [searchTerm, setSearchTerm] = useState('');
     return (
-        <Container rounded={10} bg='white' w='100%' h='70vh'>
+        <Container rounded={10} bg='white' w='100%' h='80vh'>
             <VStack justify="space-evenly" align="center" direction="column" py={5} spacing={2}>
                 <Heading>Transcripts</Heading>
                 <TranscriptSearch onSearch={setSearchTerm} />

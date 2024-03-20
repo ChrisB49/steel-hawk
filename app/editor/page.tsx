@@ -10,19 +10,20 @@ import { EditorPane } from '@/components/transcript_editor';
 export default function Page() {
     return (
         <Container bg="black" minWidth="100%" minHeight="100vh">
-            <HStack align="top" spacing={3}>
-                <VStack align="left" direction="column" spacing={3} minW='15vw'>
-                    <Heading color={"white"} size="lg">Nammu Editor</Heading>
-                    <VStack direction={'column'} align={"center"} spacing={3} maxW={500}>
-                        <UtilityMenu />
+            <VStack>
+                <HStack align="top" spacing={3}>
+                    <VStack align="left" direction="column" pt={3} minW='15vw' minH='80vh'>
                         <Transcript />
                     </VStack>
-                </VStack>
-                <VStack pt={4}>
-                    <EditorPane />
+                    <VStack pt={3} minH='80vh'>
+                        <EditorPane />
+                    </VStack>
+                </HStack>
+                <HStack>
+                    <UtilityMenu />
                     <PlayerBar />
-                </VStack>
-            </HStack>
+                </HStack>
+            </VStack>
         </Container>
     )
 }
