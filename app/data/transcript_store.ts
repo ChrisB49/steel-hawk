@@ -1,67 +1,102 @@
-//import { observable, action, computed } from 'mobx';
+import { observable, action, computed, makeAutoObservable } from 'mobx';
 import { AssemblyAI } from 'assemblyai';
 // Domain Object
-/*class Transcription {
-    id: string;
+class Audio {
+    source: string;
+    length: number;
+    url: string;
+    bitrate?: number;
+    numberOfSpeakers?: number;
+
+    constructor(source: string, length: number, url: string, bitrate?: number, numberOfSpeakers?: number) {
+        makeAutoObservable(this);
+        this.source = source;
+        this.length = length;
+        this.url = url;
+        this.bitrate = bitrate;
+        this.numberOfSpeakers = numberOfSpeakers;
+    }
+}
+
+class Transcript {
+    transcribedOn: Date;
+    editLog: any[]; // Define a more specific type based on your edit log structure
+
+    constructor(transcribedOn: Date, editLog: any[]) {
+        makeAutoObservable(this);
+        this.transcribedOn = transcribedOn;
+        this.editLog = editLog;
+    }
+}
+
+class Word {
     text: string;
-    timestamp: Date;
+    start: number;
+    end: number;
+    speaker: string;
+    channel?: number;
+    confidence: number;
 
-    constructor(id: string, text: string, timestamp: Date) {
-        this.id = id;
+    constructor(text: string, start: number, end: number, speaker: string, channel?: number, confidence: number) {
+        makeAutoObservable(this);
         this.text = text;
-        this.timestamp = timestamp;
+        this.start = start;
+        this.end = end;
+        this.speaker = speaker;
+        this.channel = channel;
+        this.confidence = confidence;
     }
 }
 
-// Domain Store
-class TranscriptionStore {
-    @observable transcriptions: Transcription[] = [];
+class Utterance {
+    utterance: string;
+    start: number;
+    end: number;
+    confidence: number;
+    speaker: string;
+    channel?: number;
+    words: Word[];
 
-    @action
-    addTranscription(id: string, text: string, timestamp: Date) {
-        const newTranscription = new Transcription(id, text, timestamp);
-        this.transcriptions.push(newTranscription);
+    constructor(utterance: string, start: number, end: number, confidence: number, speaker: string, channel?: number, words: Omit<Word, 'constructor'>[]) {
+        makeAutoObservable(this);
+        this.utterance = utterance;
+        this.start = start;
+        this.end = end;
+        this.confidence = confidence;
+        this.speaker = speaker;
+        this.channel = channel;
+        this.words = words.map(word => new Word(word.text, word.start, word.end, word.speaker, word.channel, word.confidence));
     }
-
-    @action
-    removeTranscription(id: string) {
-        this.transcriptions = this.transcriptions.filter(t => t.id !== id);
-    }
-
-    @computed
-    get sortedTranscriptions() {
-        return this.transcriptions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    }
-} */
-
-
-export function test_function() {
-    const client = new AssemblyAI({
-        apiKey: '8e3fd469c8ff496288bc5613d427c0e4',
-    });
-
-    const FILE_URL = 'https://imxze2im7tagxmrw.public.blob.vercel-storage.com/huhu-7YOnehm2uxQUbZP2b8vNkTRdAPUkyq.mp3';
-
-    // You can also transcribe a local file by passing in a file path
-    // const FILE_URL = './path/to/file.mp3';
-
-    // Request parameters
-    const params = {
-        audio: FILE_URL,
-        speaker_labels: true,
-        language_detection: true,
-    }
-
-    const run = async () => {
-        const transcript = await client.transcripts.transcribe(params)
-
-        console.log('Transcript:', transcript)
-
-        for (const utterance of transcript.utterances!) {
-            console.log(`Speaker ${utterance.speaker}: ${utterance.text}`)
-        }
-    }
-
-    run()
 }
-test_function();
+
+class RecordingsStore {
+    recordings: Recording[];
+
+    constructor() {
+        makeAutoObservable(this);
+        this.recordings = [];
+    }
+
+    addRecording(recording: Recording) {
+        this.recordings.push(recording);
+    }
+}
+
+class Recording {
+    created: Date;
+    creator?: any; // Define a more specific type based on your User/Company link
+    description: string;
+    audio: Audio;
+    transcription: Transcript;
+    utterances: Utterance[];
+
+    constructor(created: Date, creator: any, description: string, audio: Audio, transcription: Transcript, utterances: Omit<Utterance, 'constructor'>[]) {
+        makeAutoObservable(this);
+        this.created = created;
+        this.creator = creator;
+        this.description = description;
+        this.audio = new Audio(audio.source, audio.length, audio.url, audio.bitrate, audio.numberOfSpeakers);
+        this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog);
+        this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.channel, utt.words));
+    }
+}
