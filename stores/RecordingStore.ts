@@ -1,7 +1,7 @@
 import { observable, action, computed, makeAutoObservable } from 'mobx';
 import { AssemblyAI } from 'assemblyai';
 // Domain Object
-class Audio {
+export class Audio {
     source: string;
     length: number;
     url: string;
@@ -9,27 +9,27 @@ class Audio {
     numberOfSpeakers?: number;
 
     constructor(source: string, length: number, url: string, bitrate?: number, numberOfSpeakers?: number) {
-        makeAutoObservable(this);
         this.source = source;
         this.length = length;
         this.url = url;
         this.bitrate = bitrate;
         this.numberOfSpeakers = numberOfSpeakers;
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 }
 
-class Transcript {
+export class Transcript {
     transcribedOn: Date;
     editLog: any[]; // Define a more specific type based on your edit log structure
 
     constructor(transcribedOn: Date, editLog: any[]) {
-        makeAutoObservable(this);
         this.transcribedOn = transcribedOn;
         this.editLog = editLog;
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 }
 
-class Word {
+export class Word {
     text: string;
     start: number;
     end: number;
@@ -37,52 +37,74 @@ class Word {
     channel?: number;
     confidence: number;
 
-    constructor(text: string, start: number, end: number, speaker: string, channel?: number, confidence: number) {
-        makeAutoObservable(this);
+    constructor(text: string, start: number, end: number, speaker: string, confidence: number, channel?: number) {
         this.text = text;
         this.start = start;
         this.end = end;
         this.speaker = speaker;
         this.channel = channel;
         this.confidence = confidence;
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 }
 
-class Utterance {
+export class Utterance {
     utterance: string;
     start: number;
     end: number;
     confidence: number;
     speaker: string;
-    channel?: number;
+    channel: number;
     words: Word[];
 
-    constructor(utterance: string, start: number, end: number, confidence: number, speaker: string, channel?: number, words: Omit<Word, 'constructor'>[]) {
-        makeAutoObservable(this);
+    constructor(utterance: string, start: number, end: number, confidence: number, speaker: string, words: Omit<Word, 'constructor'>[], channel?: number,) {
         this.utterance = utterance;
         this.start = start;
         this.end = end;
         this.confidence = confidence;
         this.speaker = speaker;
-        this.channel = channel;
-        this.words = words.map(word => new Word(word.text, word.start, word.end, word.speaker, word.channel, word.confidence));
+        this.channel = channel !== undefined ? channel : 0;
+        this.words = words.map(word => new Word(word.text, word.start, word.end, word.speaker, this.channel, word.confidence));
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 }
 
-class RecordingsStore {
+export class RecordingsStore {
     recordings: Recording[];
+    currentRecording: Recording | null;
 
     constructor() {
-        makeAutoObservable(this);
         this.recordings = [];
+        this.currentRecording = null;
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 
     addRecording(recording: Recording) {
         this.recordings.push(recording);
     }
+
+    getRecordings() {
+        return this.recordings;
+    }
+
+    setCurrentRecording(recording: Recording) {
+        this.currentRecording = recording;
+    }
+
+    getCurrentRecording() {
+        return this.currentRecording;
+    }
+
+    getRecordingByDescription(description: string) {
+        const recording = this.recordings.find(recording => recording.description === description);
+        if (recording) {
+            return recording;
+        }
+        return null;
+    }
 }
 
-class Recording {
+export class Recording {
     created: Date;
     creator?: any; // Define a more specific type based on your User/Company link
     description: string;
@@ -91,12 +113,12 @@ class Recording {
     utterances: Utterance[];
 
     constructor(created: Date, creator: any, description: string, audio: Audio, transcription: Transcript, utterances: Omit<Utterance, 'constructor'>[]) {
-        makeAutoObservable(this);
         this.created = created;
         this.creator = creator;
         this.description = description;
         this.audio = new Audio(audio.source, audio.length, audio.url, audio.bitrate, audio.numberOfSpeakers);
         this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog);
-        this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.channel, utt.words));
+        this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.words, utt.channel,));
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 }
