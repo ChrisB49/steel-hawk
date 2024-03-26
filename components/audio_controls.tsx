@@ -2,7 +2,28 @@ import { Center, Container, Text, HStack, Slider, SliderFilledTrack, SliderThumb
 import { AiOutlineFullscreen } from "react-icons/ai"
 import { FaPlay } from "react-icons/fa"
 import { MdOutlineRepeat, MdOutlineSkipNext, MdOutlineVolumeUp, MdSkipPrevious } from "react-icons/md"
+import { observer } from 'mobx-react-lite';
+import { uiStore } from '@/stores/UIStore';
 
+export const GreenThresholdSlider = observer(() => {
+    return (
+        <VStack>
+            <Text color="white">Confidence Threshold</Text>
+            <Slider
+                aria-label="green-threshold-slider"
+                defaultValue={uiStore.getGreenThreshold()}
+                min={245}
+                max={255}
+                onChange={(value) => uiStore.setGreenThreshold(value)}
+            >
+                <SliderTrack>
+                    <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb />
+            </Slider>
+        </VStack>
+    );
+});
 
 export function SeekBar() {
     return (
@@ -76,7 +97,7 @@ export function PlayerBar() {
                         </HStack>
                     </Container>
                 </VStack>
-                <ConfidenceSelector />
+                <GreenThresholdSlider />
                 <VolumeBar />
                 <Maximizer />
             </HStack>

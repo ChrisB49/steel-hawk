@@ -34,17 +34,42 @@ export class Word {
     start: number;
     end: number;
     speaker: string;
-    channel?: number;
     confidence: number;
+    channel?: number;
+
 
     constructor(text: string, start: number, end: number, speaker: string, confidence: number, channel?: number) {
         this.text = text;
         this.start = start;
         this.end = end;
         this.speaker = speaker;
-        this.channel = channel;
         this.confidence = confidence;
+        this.channel = channel;
         makeAutoObservable(this, {}, { autoBind: true });
+    }
+
+    getConfidence() {
+        return this.confidence;
+    }
+
+    setConfidence(confidence: number) {
+        this.confidence = confidence;
+    }
+
+    getChannel() {
+        return this.channel;
+    }
+
+    setChannel(channel: number) {
+        this.channel = channel;
+    }
+
+    getText() {
+        return this.text;
+    }
+
+    setText(text: string) {
+        this.text = text;
     }
 }
 
@@ -64,9 +89,43 @@ export class Utterance {
         this.confidence = confidence;
         this.speaker = speaker;
         this.channel = channel !== undefined ? channel : 0;
-        this.words = words.map(word => new Word(word.text, word.start, word.end, word.speaker, this.channel, word.confidence));
+        this.words = words.map(word => new Word(word.text, word.start, word.end, word.speaker, word.confidence, this.channel));
         makeAutoObservable(this, {}, { autoBind: true });
     }
+
+    getWords() {
+        return this.words;
+    }
+
+    setWords(words: Word[]) {
+        this.words = words;
+    }
+
+
+    getChannel() {
+        return this.channel;
+    }
+
+    setChannel(channel: number) {
+        this.channel = channel;
+    }
+
+    getSpeaker() {
+        return this.speaker;
+    }
+
+    setSpeaker(speaker: string) {
+        this.speaker = speaker;
+    }
+
+    getConfidence() {
+        return this.confidence;
+    }
+
+    setConfidence(confidence: number) {
+        this.confidence = confidence;
+    }
+
 }
 
 export class RecordingsStore {
