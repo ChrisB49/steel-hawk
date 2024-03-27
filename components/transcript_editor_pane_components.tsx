@@ -9,37 +9,37 @@ import { uiStore } from '@/stores/UIStore';
 export const EditorWord: React.FC<{ word: Word }> = observer(({ word }) => {
 
     function calculateColor(word: Word) {
+        // Ensure confidence is within the expected range
         let confidence = Math.max(0, Math.min(1, word.getConfidence()));
+        let threshold = uiStore.getconfidenceDisplayThreshold();
+        if (confidence >= threshold) {
+            // For confidence 0.85 and above, return no color
+            return [`rgba(0, 0, 0, 0)`, `rgba(0, 0, 0, 0)`]; // Transparent color
+        }
+
         let r, g;
 
         if (confidence < 0.7) {
-            r = 255;
-            g = Math.floor(255 * (confidence / 0.7));
+            // For confidence below 0.7, increase red component and decrease green linearly
+            r = 255; // Keep red at maximum
+            g = Math.floor(255 * (confidence / 0.7)); // Scale green based on confidence, maxing out at 0.7
         } else {
-            r = Math.floor(255 * (1 - ((confidence - 0.7) / 0.3)));
-            g = 255;
+            // For confidence 0.7 and above, scale both towards green, with green maxing out and red decreasing
+            r = Math.floor(255 * (1 - ((confidence - 0.7) / 0.3))); // Decrease red as confidence goes from 0.7 to 1.0
+            g = 255; // Keep green at maximum for any confidence >= 0.7
         }
 
-        let solidColor = `rgba(${r}, ${g}, 0, 1)`;
-        let transparentColor = `rgba(${r}, ${g}, 0, 0)`;
-        let [rValue, gValue] = solidColor.match(/\d+/g)?.map(Number) ?? [0, 0];
-
-
-        // Directly access uiStore.greenThreshold here
-        let gradient_radial;
-        if (gValue >= uiStore.greenThreshold && rValue < 100) {
-            gradient_radial = "";
-        } else {
-            console.log("gValue: ", gValue, "rValue: ", rValue, "uiStore.greenThreshold: ", uiStore.greenThreshold)
-            gradient_radial = `radial-gradient(circle, ${solidColor} 50%, ${transparentColor} 100%)`;
-        }
-
-        return gradient_radial;
+        // Return both the solid and transparent versions of the color
+        return [`rgba(${r}, ${g}, 0, 1)`, `rgba(${r}, ${g}, 0, 0)`]; // Solid color and transparent color
     }
-    let gradient = calculateColor(word);
+    let [solidColor, transparentColor] = calculateColor(word);
+
+    // Define the gradient from transparent -> solid -> transparent
+    let gradient_radial = `radial-gradient(ellipse, ${solidColor} 50%, ${transparentColor} 100%)`;
+
 
     return (
-        <Box rounded={10} p={1} bgGradient={gradient}>
+        <Box rounded={10} p={1} bgGradient={gradient_radial}>
             <Text>{word.getText()}</Text>
         </Box>
     );
@@ -50,9 +50,9 @@ export const EditorRow: React.FC<{ utterance: Utterance, row_index: number }> = 
 
 
     return (
-        <HStack align="center">
+        <HStack align="center" key={row_index}>
             <Text color="gray" fontSize={10}>{(utterance.start / 1000).toFixed(1)}s - {(utterance.end / 1000).toFixed(1)}s</Text>
-            <Container key={row_index} bg="gray.50" minW="90%" minH="auto" p={2} m={1} rounded={10} border="2px" borderColor="black">
+            <Container bg="gray.50" minW="90%" minH="auto" p={2} m={1} rounded={10} border="2px" borderColor="black">
                 <Heading size="sm">{utterance.speaker}</Heading>
                 <Wrap>
                     {utterance.words && utterance.words.map((word, index) => (

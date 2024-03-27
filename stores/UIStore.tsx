@@ -1,18 +1,17 @@
 import { makeAutoObservable } from "mobx";
 
 class UIStore {
-    greenThreshold: number = 200; // Default threshold value
-
+    confidenceDisplayThreshold: number = 0.85;
     constructor() {
         makeAutoObservable(this);
     }
 
-    setGreenThreshold(value: number) {
-        this.greenThreshold = value;
+    setconfidenceDisplayThreshold(value: number) {
+        this.confidenceDisplayThreshold = value;
     }
 
-    getGreenThreshold() {
-        return this.greenThreshold;
+    getconfidenceDisplayThreshold() {
+        return this.confidenceDisplayThreshold;
     }
 }
 
