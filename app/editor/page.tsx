@@ -5,8 +5,7 @@ import { Container, Flex, Text, Link, Stack, VStack, HStack, Heading, } from '@c
 import { RecordingPane } from "@/components/recordings_search_pane";
 import { UtilityMenu } from '@/components/utility_menu';
 import { PlayerBar } from '@/components/audio_controls';
-import { EditorPane } from '@/components/transcript_editor';
-import { RecordingsStore, Recording, Audio, Transcript, Utterance } from '@/stores/RecordingStore';
+import { EditorPane } from '@/components/transcript_editor';import { RecordingsStore, Recording, Audio, Transcript, Utterance } from '@/stores/RecordingStore';
 import { getOrSetDefaultRecordings } from '@/app/lib/utilities';
 import { useStore } from '@/app/providers';
 
