@@ -4,7 +4,7 @@ import { huhu_data } from '@/stores/huhu_test_data';
 import { george_data } from '@/stores/george_test_data';
 import { test_data } from '@/stores/test_data_2';
 
-export function getOrSetDefaultRecordings() {
+export function useGetOrSetDefaultRecordings() {
     console.log("getOrSetDefaultRecordings")
     const recordingsStore = useStore().recordingsStore;
     const existing_default_recording = recordingsStore.getRecordingByDescription("Default Recording");
