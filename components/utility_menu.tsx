@@ -4,15 +4,51 @@ import { AddIcon, EditIcon } from '@chakra-ui/icons';
 
 import { useDisclosure } from '@chakra-ui/hooks';
 import React from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import AWS from 'aws-sdk';
+
+AWS.config.update({
+    region: 'ca-central-1', // e.g., 'us-west-2'
+    credentials: new AWS.Credentials({
+        accessKeyId: process.env.S3accessKeyId || '',
+        secretAccessKey: process.env.S3secretAccessKey || '',
+    }),
+  });
+  
+  // Create an instance of the S3 service object
+  const s3 = new AWS.S3();
 
 export const NewTranscriptionButton = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [audioSource, setAudioSource] = React.useState('file');
     const toast = useToast();
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
+        const file = formData.get('fileInputName');
+        if (file && file instanceof File) {
+            const fileKey = `${uuidv4()}-${file.name}`;
+            const uploadParams = {
+                Bucket: 'steel-hawk',
+                Key: fileKey,
+                Body: file,
+            };
+    
+            try {
+                const uploadResult = await s3.upload(uploadParams).promise();
+                
+                // If upload is successful, you can use the S3 URL
+                const s3Url = uploadResult.Location;
+                
+                // Here you can call your RecordingStore to add the new recording
+                // with the S3 URL as the audio source URL
+    
+            } catch (error) {
+                console.error('S3 Upload Error:', error);
+                // Handle the upload error
+            }
+        }
         const data = Object.fromEntries(formData.entries());
         console.log(data); // Do something with the form data
         onClose();
@@ -56,13 +92,12 @@ export const NewTranscriptionButton = () => {
                                     <Select name="audio_source" onChange={(e) => setAudioSource(e.target.value)}>
                                         <option value="file">File Upload</option>
                                         <option value="url">URL</option>
-                                        <option value="record">Start Recording</option>
                                     </Select>
                                 </FormControl>
                                 {audioSource === 'file' && (
                                     <FormControl mt={4}>
                                         <FormLabel>Upload Audio File</FormLabel>
-                                        <Input type="file" name="audio_file" accept="audio/*" />
+                                        <Input type="file" name="fileInputName" accept=".3ga,.8svx,.aac,.ac3,.aif,.aiff,.alac,.amr,.ape,.au,.dss,.flac,.flv,.m4a,.m4b,.m4p,.m4r,.mp3,.mpga,.ogg,.oga,.mogg,.opus,.qcp,.tta,.voc,.wav,.wma,.wv" />
                                     </FormControl>
                                 )}
                                 {audioSource === 'url' && (
@@ -70,11 +105,6 @@ export const NewTranscriptionButton = () => {
                                         <FormLabel>Audio URL</FormLabel>
                                         <Input type="url" name="audio_url" placeholder="Enter the URL of the audio file" />
                                     </FormControl>
-                                )}
-                                {audioSource === 'record' && (
-                                    <Button mt={4} colorScheme="blue">
-                                        Start Recording
-                                    </Button>
                                 )}
                         </form>
                     </ModalBody>

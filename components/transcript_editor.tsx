@@ -14,7 +14,7 @@ export const EditorPane: React.FC<{ recording_store: RecordingsStore }> = observ
                 <VStack bg='white' maxH="70vh" overflowY="auto" minW="60vw" align='left'>
                     <Heading size="sm">{current_recording && current_recording.description}</Heading>
                     {current_recording && current_recording.utterances.map((utterance, index) => (
-                        <EditorRow utterance={utterance} row_index={index}></EditorRow>
+                        <EditorRow utterance={utterance} row_index={index} key={index}></EditorRow>
                     ))}
                 </VStack>
             </VStack >
