@@ -1,64 +1,74 @@
 'use client'
 import { FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Button, useToast, Container, Link, VStack, HStack, Image, FormHelperText, Select } from '@chakra-ui/react'
 import { AddIcon, EditIcon } from '@chakra-ui/icons';
-
+import https from "https";
 import { useDisclosure } from '@chakra-ui/hooks';
 import React from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import AWS from 'aws-sdk';
-
-AWS.config.update({
-    region: 'ca-central-1', // e.g., 'us-west-2'
-    credentials: new AWS.Credentials({
-        accessKeyId: process.env.S3accessKeyId || '',
-        secretAccessKey: process.env.S3secretAccessKey || '',
-    }),
-  });
-  
-  // Create an instance of the S3 service object
-  const s3 = new AWS.S3();
 
 export const NewTranscriptionButton = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [audioSource, setAudioSource] = React.useState('file');
     const toast = useToast();
 
+    async function uploadToPresignedUrl(url: string, data: Blob) {
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                body: data, // Blob data
+                headers: {
+                    'Content-Type': 'application/octet-stream', // or the appropriate type for your file
+                },
+            });
+    
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+    
+            return await response.text(); // or .json() if the response is in JSON format
+        } catch (error) {
+            console.error('Upload to presigned URL failed:', error);
+            throw error;
+        }
+    }
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        const file = formData.get('fileInputName');
+        const file = formData.get('file_Input');
+    
         if (file && file instanceof File) {
-            const fileKey = `${uuidv4()}-${file.name}`;
-            const uploadParams = {
-                Bucket: 'steel-hawk',
-                Key: fileKey,
-                Body: file,
-            };
-    
             try {
-                const uploadResult = await s3.upload(uploadParams).promise();
-                
-                // If upload is successful, you can use the S3 URL
-                const s3Url = uploadResult.Location;
-                
-                // Here you can call your RecordingStore to add the new recording
-                // with the S3 URL as the audio source URL
+                // Send only the filename to your API
+                const response = await fetch('/api/S3utils', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ filename: file.name }),
+                });
     
+                if (response.ok) {
+                    const { presignedURL } = await response.json();
+                    // Perform the upload directly to the presignedURL
+                    const uploadResponse = await uploadToPresignedUrl(presignedURL, file);
+    
+                    // Handle successful upload response here
+                    console.log('File uploaded successfully:', uploadResponse);
+                    toast({
+                        title: "Transcription created",
+                        description: "Transcription created successfully",
+                        status: "success",
+                        duration: 5000,
+                        isClosable: true,
+                    });
+                } else {
+                    throw new Error('Failed to get presigned URL');
+                }
             } catch (error) {
-                console.error('S3 Upload Error:', error);
-                // Handle the upload error
+                console.error('Error:', error);
+                // Handle the error
             }
         }
-        const data = Object.fromEntries(formData.entries());
-        console.log(data); // Do something with the form data
         onClose();
-        toast({
-            title: "Transcription created",
-            description: "Transcription created successfully",
-            status: "success",
-            duration: 5000,
-            isClosable: true,
-        })
     }
 
     return (
@@ -97,7 +107,7 @@ export const NewTranscriptionButton = () => {
                                 {audioSource === 'file' && (
                                     <FormControl mt={4}>
                                         <FormLabel>Upload Audio File</FormLabel>
-                                        <Input type="file" name="fileInputName" accept=".3ga,.8svx,.aac,.ac3,.aif,.aiff,.alac,.amr,.ape,.au,.dss,.flac,.flv,.m4a,.m4b,.m4p,.m4r,.mp3,.mpga,.ogg,.oga,.mogg,.opus,.qcp,.tta,.voc,.wav,.wma,.wv" />
+                                        <Input type="file" name="file_Input" accept=".3ga,.8svx,.aac,.ac3,.aif,.aiff,.alac,.amr,.ape,.au,.dss,.flac,.flv,.m4a,.m4b,.m4p,.m4r,.mp3,.mpga,.ogg,.oga,.mogg,.opus,.qcp,.tta,.voc,.wav,.wma,.wv" />
                                     </FormControl>
                                 )}
                                 {audioSource === 'url' && (
