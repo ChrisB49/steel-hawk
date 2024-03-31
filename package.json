@@ -16,6 +16,7 @@
     "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.0",
+    "@vercel/speed-insights": "^1.0.10",
     "assemblyai": "^4.3.2",
     "aws-sdk": "^2.1589.0",
     "framer-motion": "^11.0.8",
