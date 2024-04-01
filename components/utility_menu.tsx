@@ -1,9 +1,48 @@
 'use client'
-import { FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Button, useToast, Container, Link, VStack, HStack, Image, FormHelperText, Select } from '@chakra-ui/react'
+import { FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Button, useToast, Container, Link, VStack, HStack, Image, FormHelperText, Select, Heading } from '@chakra-ui/react'
 import { AddIcon, EditIcon } from '@chakra-ui/icons';
 import https from "https";
 import { useDisclosure } from '@chakra-ui/hooks';
 import React from 'react';
+import { useEffect } from 'react';
+import { observer } from 'mobx-react-lite';
+import { uiStore } from '@/stores/UIStore';
+
+const SSEListenerComponent = observer(() => {
+    useEffect(() => {
+      if (!uiStore.transcriptionId) return;
+  
+      const eventSource = new EventSource(`/api/updates?transcriptionId=${uiStore.transcriptionId}`);
+  
+      eventSource.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+  
+        if (data.status === 'TranscriptionCompleted' && data.transcriptionId === uiStore.transcriptionId) {
+          uiStore.completeTranscription();
+        }
+      };
+  
+      eventSource.onerror = (e) => {
+        console.error('EventSource failed:', e);
+        eventSource.close();
+      };
+  
+      return () => {
+        eventSource.close();
+      };
+    }, [uiStore, uiStore.transcriptionId]);
+  
+    // Render your component UI here
+    return (
+      <div>
+        {uiStore.isTranscribing ? (
+            <Button colorScheme="blue" size="md" w='35vh' isLoading loadingText='Transcribing... Please wait.'></Button>
+        ) : null}
+      </div>
+    );
+  });
+  
+  export default SSEListenerComponent;
 
 export const NewTranscriptionButton = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -38,7 +77,7 @@ export const NewTranscriptionButton = () => {
         if (file && file instanceof File) {
             try {
                 // Send only the filename to your API
-                const response = await fetch('/api/S3utils', {
+                const response = await fetch('/api/s3/create-presigned-urls', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -47,15 +86,24 @@ export const NewTranscriptionButton = () => {
                 });
     
                 if (response.ok) {
-                    const { presignedURL } = await response.json();
+                    const { signedPutUrlObject,signedGetUrlObject } = await response.json();
                     // Perform the upload directly to the presignedURL
-                    const uploadResponse = await uploadToPresignedUrl(presignedURL, file);
-    
+                    const uploadResponse = await uploadToPresignedUrl(signedPutUrlObject, file);
+                    //start transcription via assemblyAI
+                    const resp = await fetch('/api/assemblyAI/start_transcription', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ s3presignedurl: signedGetUrlObject }),
+                    });
+                    const resp_json = await resp.json(); 
+                    uiStore.startTranscription(resp_json.data.id);
                     // Handle successful upload response here
                     console.log('File uploaded successfully:', uploadResponse);
                     toast({
-                        title: "Transcription created",
-                        description: "Transcription created successfully",
+                        title: "Transcription Added",
+                        description: "Transcription Added successfully, Processing now...",
                         status: "success",
                         duration: 5000,
                         isClosable: true,
@@ -132,18 +180,25 @@ export const NewTranscriptionButton = () => {
 
 
 
-export function UtilityMenu() {
+export const UtilityMenu = observer(() => {
+    // Render the SSEListenerComponent if a transcription is occurring
+    const transcriptionStatus = uiStore.isTranscribing ? (
+      <SSEListenerComponent />
+    ) : (
+      <NewTranscriptionButton />
+    );
+  
     return (
-            <Container rounded={10} bg='black'>
-                <HStack align="center" direction="column" spacing={2}>
-                    <Image src="static/img/nammu_logo_inverted.png" alt="Logo" w="150px" h="150px" />
-                    <VStack>
-                        <NewTranscriptionButton />
-                        <Button leftIcon={<EditIcon />} colorScheme="blue" size="md" w='35vh' >
-                            <Link href='/'>Format/Export</Link>
-                        </Button>
-                    </VStack>
-                </HStack>
-            </Container >
-            )
-}
+      <Container rounded={10} bg='black'>
+        <HStack align="center" direction="column" spacing={2}>
+          <Image src="static/img/nammu_logo_inverted.png" alt="Logo" w="150px" h="150px" />
+          <VStack>
+            {transcriptionStatus}
+            <Button leftIcon={<EditIcon />} colorScheme="blue" size="md" w='35vh'>
+              <Link href='/'>Format/Export</Link>
+            </Button>
+          </VStack>
+        </HStack>
+      </Container>
+    );
+  });

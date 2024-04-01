@@ -11,7 +11,7 @@ export const EditorWord: React.FC<{ word: Word }> = observer(({ word }) => {
     function calculateColor(word: Word) {
         // Ensure confidence is within the expected range
         let confidence = Math.max(0, Math.min(1, word.getConfidence()));
-        let threshold = uiStore.getconfidenceDisplayThreshold();
+        let threshold = uiStore.getConfidenceDisplayThreshold();
         if (confidence >= threshold) {
             // For confidence 0.85 and above, return no color
             return [`rgba(0, 0, 0, 0)`, `rgba(0, 0, 0, 0)`]; // Transparent color

@@ -3,6 +3,34 @@ import { useStore } from '@/app/providers';
 import { huhu_data } from '@/stores/huhu_test_data';
 import { george_data } from '@/stores/george_test_data';
 import { test_data } from '@/stores/test_data_2';
+import { fromIni } from "@aws-sdk/credential-provider-ini";
+import { HttpRequest } from "@smithy/protocol-http";
+import {
+  S3RequestPresigner,
+} from "@aws-sdk/s3-request-presigner";
+import { parseUrl } from "@smithy/url-parser";
+import { formatUrl } from "@aws-sdk/util-format-url";
+import { Hash } from "@smithy/hash-node";
+
+export const createPresignedUrlWithoutClient = async ({ region, bucket, key }: { region: string; bucket: string; key: string }) => {
+    const url = parseUrl(`https://${bucket}.s3.${region}.amazonaws.com/${key}`);
+    const presigner = new S3RequestPresigner({
+      credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+      region,
+      sha256: Hash.bind(null, "sha256"),
+    });
+  
+    const signedPutUrlObject = await presigner.presign(
+      new HttpRequest({ ...url, method: "PUT" }),
+    );
+    const signedGetUrlObject = await presigner.presign(
+      new HttpRequest({ ...url, method: "GET" }),
+    )
+    return [formatUrl(signedPutUrlObject), formatUrl(signedGetUrlObject)];
+  };
 
 export function useGetOrSetDefaultRecordings() {
     console.log("getOrSetDefaultRecordings")

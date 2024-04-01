@@ -2,16 +2,29 @@ import { makeAutoObservable } from "mobx";
 
 class UIStore {
     confidenceDisplayThreshold: number = 0.85;
+    isTranscribing: boolean = false;
+    transcriptionId: string | null = null;
+
     constructor() {
         makeAutoObservable(this);
     }
 
-    setconfidenceDisplayThreshold(value: number) {
+    setConfidenceDisplayThreshold(value: number) {
         this.confidenceDisplayThreshold = value;
     }
 
-    getconfidenceDisplayThreshold() {
+    getConfidenceDisplayThreshold() {
         return this.confidenceDisplayThreshold;
+    }
+
+    startTranscription(transcriptionId: string) {
+        this.transcriptionId = transcriptionId;
+        this.isTranscribing = true;
+    }
+
+    completeTranscription() {
+        this.transcriptionId = null;
+        this.isTranscribing = false;
     }
 }
 

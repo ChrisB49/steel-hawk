@@ -19,6 +19,7 @@
     "@vercel/speed-insights": "^1.0.10",
     "assemblyai": "^4.3.2",
     "aws-sdk": "^2.1589.0",
+    "axios": "^1.6.8",
     "framer-motion": "^11.0.8",
     "fs": "^0.0.1-security",
     "mobx": "^6.12.0",

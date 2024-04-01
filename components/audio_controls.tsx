@@ -11,10 +11,10 @@ export const GreenThresholdSlider = observer(() => {
             <Text color="white">Confidence Threshold</Text>
             <Slider
                 aria-label="green-threshold-slider"
-                defaultValue={uiStore.getconfidenceDisplayThreshold() * 10}
+                defaultValue={uiStore.getConfidenceDisplayThreshold() * 10}
                 min={6}
                 max={11}
-                onChange={(value) => uiStore.setconfidenceDisplayThreshold(value / 10)}
+                onChange={(value) => uiStore.setConfidenceDisplayThreshold(value / 10)}
             >
                 <SliderTrack>
                     <SliderFilledTrack />
