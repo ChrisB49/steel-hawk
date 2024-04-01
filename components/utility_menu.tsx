@@ -10,6 +10,7 @@ import { uiStore } from '@/stores/UIStore';
 
 const SSEListenerComponent = observer(() => {
     useEffect(() => {
+      // Establish a new SSE connection only if a transcription ID is present
       if (!uiStore.transcriptionId) return;
   
       const eventSource = new EventSource(`/api/updates?transcriptionId=${uiStore.transcriptionId}`);
@@ -17,20 +18,26 @@ const SSEListenerComponent = observer(() => {
       eventSource.onmessage = (e) => {
         const data = JSON.parse(e.data);
   
+        // Check if the received message indicates that the transcription is complete
         if (data.status === 'TranscriptionCompleted' && data.transcriptionId === uiStore.transcriptionId) {
+          // Update the store to reflect that the transcription is complete
           uiStore.completeTranscription();
         }
       };
   
       eventSource.onerror = (e) => {
+        // Handle the SSE error
         console.error('EventSource failed:', e);
         eventSource.close();
       };
   
+      // Clean up the SSE connection when the component is unmounted
       return () => {
         eventSource.close();
       };
-    }, [uiStore, uiStore.transcriptionId]);
+  
+      // The empty dependency array ensures this effect runs only on mount and unmount
+    }, []);
   
     // Render your component UI here
     return (
