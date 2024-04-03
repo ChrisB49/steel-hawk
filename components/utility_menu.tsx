@@ -20,12 +20,13 @@ export const UploadProgress = observer(() => {
   });
 
   export const PollingComponent = ({ transactionId, recordingsStore }: { transactionId: string, recordingsStore: RecordingsStore }) => {
-    if (transactionId === "") {
-        return null
-    }
-    const [isPolling, setIsPolling] = useState(true);
     const toast = useToast();
+    const [isPolling, setIsPolling] = useState(true);
     useEffect(() => {
+      if (transactionId === "") {
+        setIsPolling(false);
+        return;
+      }
       const intervalId = setInterval(async () => {
         if (uiStore.newTranscription.isTranscribing) {
           try {
