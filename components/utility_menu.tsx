@@ -1,87 +1,139 @@
 'use client'
-import { FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Button, useToast, Container, Link, VStack, HStack, Image, FormHelperText, Select, Heading } from '@chakra-ui/react'
+import { FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Button, useToast, Container, Link, VStack, HStack, Image, FormHelperText, Select, Heading, Progress } from '@chakra-ui/react'
 import { AddIcon, EditIcon } from '@chakra-ui/icons';
-import https from "https";
 import { useDisclosure } from '@chakra-ui/hooks';
-import React from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
+import { useStore } from '@/app/providers';
+import { RecordingsStore } from "@/stores/RecordingStore";
 
-const SSEListenerComponent = observer(() => {
-    useEffect(() => {
-      // Establish a new SSE connection only if a transcription ID is present
-      if (!uiStore.transcriptionId) return;
-  
-      const eventSource = new EventSource(`/api/updates?transcriptionId=${uiStore.transcriptionId}`);
-  
-      eventSource.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-  
-        // Check if the received message indicates that the transcription is complete
-        if (data.status === 'TranscriptionCompleted' && data.transcriptionId === uiStore.transcriptionId) {
-          // Update the store to reflect that the transcription is complete
-          uiStore.completeTranscription();
-        }
-      };
-  
-      eventSource.onerror = (e) => {
-        // Handle the SSE error
-        console.error('EventSource failed:', e);
-        eventSource.close();
-      };
-  
-      // Clean up the SSE connection when the component is unmounted
-      return () => {
-        eventSource.close();
-      };
-  
-      // The empty dependency array ensures this effect runs only on mount and unmount
-    }, []);
-  
-    // Render your component UI here
+export const UploadProgress = observer(() => {
+    if (!uiStore.newTranscription.isUploading) {
+      return null;
+    }
+    const button_text = `Uploading... ${uiStore.newTranscription.uploadingPercentage.toFixed(2)}%`;
+    
     return (
-      <div>
-        {uiStore.isTranscribing ? (
+      <Button colorScheme="blue" size="md" w='35vh' isLoading loadingText={button_text}></Button>
+    );
+  });
+
+  export const PollingComponent = ({ transactionId, recordingsStore }: { transactionId: string, recordingsStore: RecordingsStore }) => {
+    if (transactionId === "") {
+        return null
+    }
+    const [isPolling, setIsPolling] = useState(true);
+    const toast = useToast();
+    useEffect(() => {
+      const intervalId = setInterval(async () => {
+        if (uiStore.newTranscription.isTranscribing) {
+          try {
+            console.log('Checking transcription status...');
+            const response = await await fetch(`/api/assemblyAI/get-status?transactionId=${transactionId}`);
+            if (response.ok) {
+                const { status,data } = await response.json();
+                let formData = uiStore.newTranscription.getFields();
+                if (formData["description"] !== "") {
+                  data['summary'] = formData["description"];
+                }
+                if (formData["author"] !== ""){
+                  data['author'] = formData["author"];                
+                }
+                if (status === 'completed') {
+                    setIsPolling(false);
+                    uiStore.newTranscription.completeTranscription(data,recordingsStore);
+                    toast({
+                        title: "Transcription Completed",
+                        description: "Transcription Proccessed successfully",
+                        status: "success",
+                        duration: 5000,
+                        isClosable: true,
+                    });
+                }
+                else {
+                    console.log('Transcription not yet complete:', status);
+                }
+            }
+            
+            // You might want to update the state with the latest status
+          } catch (error) {
+            console.error('Error polling the endpoint:', error);
+          }
+        }
+      }, 10000);
+  
+      return () => clearInterval(intervalId);
+    }, [isPolling, transactionId, recordingsStore]);
+  
+    return (
+        <div>
+        {uiStore.newTranscription.isTranscribing ? (
             <Button colorScheme="blue" size="md" w='35vh' isLoading loadingText='Transcribing... Please wait.'></Button>
         ) : null}
       </div>
     );
-  });
-  
-  export default SSEListenerComponent;
-
+  };
 export const NewTranscriptionButton = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [audioSource, setAudioSource] = React.useState('file');
     const toast = useToast();
 
-    async function uploadToPresignedUrl(url: string, data: Blob) {
-        try {
-            const response = await fetch(url, {
-                method: 'PUT',
-                body: data, // Blob data
-                headers: {
-                    'Content-Type': 'application/octet-stream', // or the appropriate type for your file
-                },
-            });
-    
-            if (!response.ok) {
-                throw new Error(`Server responded with ${response.status}`);
+    function uploadToPresignedUrl(url: string, data: Blob) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', url);
+      
+          // Set up any headers here
+          xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      
+          // Handle the progress event
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentage = (event.loaded / event.total) * 100;
+              uiStore.newTranscription.updateUploadPercentage(percentage);
             }
-    
-            return await response.text(); // or .json() if the response is in JSON format
-        } catch (error) {
-            console.error('Upload to presigned URL failed:', error);
-            throw error;
-        }
-    }
+          };
+      
+          // Set up the response handling
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              uiStore.newTranscription.completeUpload();
+              resolve(xhr.responseText);
+            } else {
+              reject(new Error(`Server responded with ${xhr.status}`));
+            }
+          };
+      
+          // Handle network errors
+          xhr.onerror = () => {
+            reject(new Error("Network Error"));
+          };
+      
+          // Handle the start and end of the upload
+          xhr.onloadstart = () => {
+            uiStore.newTranscription.startUpload();
+          };
+      
+          xhr.onloadend = () => {
+            uiStore.newTranscription.completeUpload();
+          };
+      
+          // Send the request
+          xhr.send(data);
+        });
+      }
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
+        console.log(formData);
+        formData.forEach((value, key) => {
+          uiStore.newTranscription.setField(key, value);
+        })
         const file = formData.get('file_Input');
     
         if (file && file instanceof File) {
+            onClose();
             try {
                 // Send only the filename to your API
                 const response = await fetch('/api/s3/create-presigned-urls', {
@@ -93,37 +145,52 @@ export const NewTranscriptionButton = () => {
                 });
     
                 if (response.ok) {
-                    const { signedPutUrlObject,signedGetUrlObject } = await response.json();
-                    // Perform the upload directly to the presignedURL
-                    const uploadResponse = await uploadToPresignedUrl(signedPutUrlObject, file);
-                    //start transcription via assemblyAI
-                    const resp = await fetch('/api/assemblyAI/start_transcription', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ s3presignedurl: signedGetUrlObject }),
+                    response.json().then(({ signedPutUrlObject, signedGetUrlObject }) => {
+                      // Perform the upload directly to the presignedURL
+                      uploadToPresignedUrl(signedPutUrlObject, file)
+                        .then(uploadResponse => {
+                          console.log('File uploaded successfully:', uploadResponse);
+                          // Start transcription via assemblyAI
+                          fetch('/api/assemblyAI/start-transcription', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ s3presignedurl: signedGetUrlObject }),
+                          })
+                            .then(resp => resp.json())
+                            .then(resp_json => {
+                              uiStore.newTranscription.startTranscription(resp_json.data.id);
+                              // Handle successful upload response here
+                              console.log('File Transcribed` successfully:', uploadResponse);
+                              // Consider showing toast or updating UI here
+                            })
+                            .catch(error => {
+                              console.error('Error starting transcription:', error);
+                              // Handle error starting transcription here
+                            });
+                        })
+                        .catch(uploadError => {
+                          console.error('Error uploading file:', uploadError);
+                          // Handle file upload error here
+                        });
+                    })
+                    .catch(jsonError => {
+                      console.error('Error parsing response to JSON:', jsonError);
+                      // Handle error parsing response here
                     });
-                    const resp_json = await resp.json(); 
-                    uiStore.startTranscription(resp_json.data.id);
-                    // Handle successful upload response here
-                    console.log('File uploaded successfully:', uploadResponse);
-                    toast({
-                        title: "Transcription Added",
-                        description: "Transcription Added successfully, Processing now...",
-                        status: "success",
-                        duration: 5000,
-                        isClosable: true,
-                    });
-                } else {
-                    throw new Error('Failed to get presigned URL');
-                }
+                  } else {
+                    console.error('Network response was not ok.');
+                    // Handle network response error here
+                  }
             } catch (error) {
                 console.error('Error:', error);
                 // Handle the error
             }
         }
-        onClose();
+        else if (audioSource === 'url') {
+          
+        }
     }
 
     return (
@@ -149,12 +216,17 @@ export const NewTranscriptionButton = () => {
                                 <Input name="description" placeholder="Description" /> 
                             </FormControl>
                             <FormControl mt={4}>
+                                <FormLabel>Author</FormLabel>
+                                <FormHelperText>Enter a the Authors name for this transcription</FormHelperText>
+                                <Input name="author" placeholder="John Doe" /> 
+                            </FormControl>
+                            <FormControl mt={4}>
                                 <FormLabel>Number of Speakers</FormLabel>
                                 <Input type="number" name="number_of_speakers" placeholder="Enter the number of speakers" />
                                 </FormControl>
                                 <FormControl mt={4}>
                                     <FormLabel>Audio Source</FormLabel>
-                                    <Select name="audio_source" onChange={(e) => setAudioSource(e.target.value)}>
+                                    <Select name="audio_source" onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAudioSource(e.target.value)}>
                                         <option value="file">File Upload</option>
                                         <option value="url">URL</option>
                                     </Select>
@@ -189,12 +261,18 @@ export const NewTranscriptionButton = () => {
 
 export const UtilityMenu = observer(() => {
     // Render the SSEListenerComponent if a transcription is occurring
-    const transcriptionStatus = uiStore.isTranscribing ? (
-      <SSEListenerComponent />
-    ) : (
-      <NewTranscriptionButton />
-    );
-  
+
+    let transcriptionStatus;
+    const recordingsStore = useStore().recordingsStore;
+    if (uiStore.newTranscription.isUploading) {
+        transcriptionStatus = (<UploadProgress />);
+    }
+    else if (uiStore.newTranscription.isTranscribing) {
+        transcriptionStatus = (<PollingComponent transactionId={uiStore.newTranscription.transcriptionId||""} recordingsStore={recordingsStore} />);
+    }
+    else {
+        transcriptionStatus = (<NewTranscriptionButton />);
+    }
     return (
       <Container rounded={10} bg='black'>
         <HStack align="center" direction="column" spacing={2}>

@@ -1,7 +1,6 @@
-import React, { useContext, createContext } from 'react';
-import { Container, Heading, VStack, Text, HStack } from "@chakra-ui/react";
-import { Recording, RecordingsStore } from "@/stores/RecordingStore";
-import { useStore } from '@/app/providers';
+import React from 'react';
+import { Container, Heading, VStack } from "@chakra-ui/react";
+import { RecordingsStore } from "@/stores/RecordingStore";
 import { observer } from 'mobx-react-lite';
 import { EditorRow } from '@/components/transcript_editor_pane_components';
 

@@ -32,6 +32,22 @@ export const createPresignedUrlWithoutClient = async ({ region, bucket, key }: {
     return [formatUrl(signedPutUrlObject), formatUrl(signedGetUrlObject)];
   };
 
+export const getPresignedUrlWithoutClient = async ({ s3ObjectUrl }: { s3ObjectUrl: string }) => {
+    const url = parseUrl(s3ObjectUrl);
+    const presigner = new S3RequestPresigner({
+      credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+      region: process.env.AWS_REGION || '',
+      sha256: Hash.bind(null, "sha256"),
+    });
+    const signedGetUrlObject = await presigner.presign(
+      new HttpRequest({ ...url, method: "GET" }),
+    )
+    return formatUrl(signedGetUrlObject);
+}
+
 export function useGetOrSetDefaultRecordings() {
     console.log("getOrSetDefaultRecordings")
     const recordingsStore = useStore().recordingsStore;
@@ -46,19 +62,20 @@ export function useGetOrSetDefaultRecordings() {
     const default_recording = new Recording(todays_date, "Chris Becak", "Default Recording", default_audio, default_transcript, [default_utterance]);
     recordingsStore.addRecording(default_recording);
     console.log("Added Default Recordings", default_recording)
-    const huhu_test_data: dataJsonFormat = huhu_data;
-    const george_test_data: dataJsonFormat = george_data;
-    const test_2_data: dataJsonFormat = test_data;
-    const dummy_dataset = [huhu_test_data, george_test_data, test_2_data];
-    dummy_dataset.forEach((data) => {
-        const recording_object = createRecordingObjectsFromDataJson(data);
-        recordingsStore.addRecording(recording_object);
-    });
+    //const huhu_test_data: dataJsonFormat = huhu_data;
+    //const george_test_data: dataJsonFormat = george_data;
+    //const test_2_data: dataJsonFormat = test_data;
+    //const dummy_dataset = [huhu_test_data, george_test_data, test_2_data];
+    //dummy_dataset.forEach((data) => {
+    //    const recording_object = createRecordingObjectsFromDataJson(data);
+    //    recordingsStore.addRecording(recording_object);
+    //});
     return default_recording;
 }
 
 export interface dataJsonFormat {
     audio_url: string,
+    author: string,
     audio_duration: number,
     summary: string | null,
     utterances: Array<{
@@ -100,6 +117,6 @@ export function createRecordingObjectsFromDataJson(
     if (data.summary === null) {
         data.summary = "";
     }
-    const recording_object = new Recording(new Date(), "Chris Becak", data.summary, audio_object, transcript_object, utterances);
+    const recording_object = new Recording(new Date(), data.author || "Chris Becak", data.summary, audio_object, transcript_object, utterances);
     return recording_object;
 }

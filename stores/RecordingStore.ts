@@ -1,5 +1,5 @@
-import { observable, action, computed, makeAutoObservable } from 'mobx';
-import { AssemblyAI } from 'assemblyai';
+import axios from 'axios';
+import { makeAutoObservable } from 'mobx';
 // Domain Object
 export class Audio {
     source: string;
@@ -15,6 +15,18 @@ export class Audio {
         this.bitrate = bitrate;
         this.numberOfSpeakers = numberOfSpeakers;
         makeAutoObservable(this, {}, { autoBind: true });
+    }
+
+    async getAudioUrl() {
+        //if the audio is an url that is a s3 bucket, we need to get a presigned url that allows for GET.
+        if (this.url.includes("s3") && this.url.includes("amazonaws.com")) {
+            const response = await axios.get(`/api/s3/get-presigned-url?${this.url}`);
+            const response_data = response.data;
+            return response_data.signedGetUrlObject;
+        }
+        else{
+            return this.url;
+        }
     }
 }
 

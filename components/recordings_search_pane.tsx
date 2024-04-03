@@ -1,10 +1,6 @@
 import { Container, Text, Stack, VStack, Heading, Input, Button } from '@chakra-ui/react'
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
-import { huhu_data } from '@/stores/huhu_test_data';
-import { george_data } from '@/stores/george_test_data';
-import { test_data } from '@/stores/test_data_2';
-import { createContext, useContext } from "react"
 import { createRecordingObjectsFromDataJson, dataJsonFormat } from '@/app/lib/utilities';
 import { useStore } from '@/app/providers';
 import { Recording } from '@/stores/RecordingStore';
