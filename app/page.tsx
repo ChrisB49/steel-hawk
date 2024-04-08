@@ -1,15 +1,35 @@
-// app/page.tsx
 'use client'
-import { Link } from '@chakra-ui/next-js'
-import { Box } from '@chakra-ui/react'
+import { Container, Flex, Text, Link, Stack, VStack, HStack, Heading, } from '@chakra-ui/react'
 
-if (!new class { x: any }().hasOwnProperty('x')) throw new Error('Transpiler is not configured correctly');
+
+import { RecordingPane } from "@/components/recordings_search_pane";
+import { UtilityMenu } from '@/components/utility_menu';
+import { PlayerBar } from '@/components/audio_controls';
+import { EditorPane } from '@/components/transcript_editor';import { RecordingsStore, Recording, Audio, Transcript, Utterance } from '@/stores/RecordingStore';
+import { useGetOrSetDefaultRecordings } from '@/app/lib/utilities';
+import { useStore } from '@/app/providers';
+import { AudioPlayer } from '@/components/audio';
 
 export default function Page() {
-  return (
-    <Box bg='green' w='120px' h='150px'>
-      <Link href='/editor'>Editor</Link>
-      <h1>Page</h1>
-    </Box>
-  )
+    const recordingsStore = useStore().recordingsStore;
+    recordingsStore.setCurrentRecording(useGetOrSetDefaultRecordings());
+    return (
+        <Container bg="black" minWidth="100%" minHeight="100vh">
+            <AudioPlayer />
+            <VStack>
+                <HStack align="top" spacing={3}>
+                    <VStack align="left" direction="column" pt={3} minW='15vw' minH='80vh'>
+                        <RecordingPane />
+                    </VStack>
+                    <VStack pt={3} minH='80vh'>
+                        <EditorPane recording_store={recordingsStore} />
+                    </VStack>
+                </HStack>
+                <HStack>
+                    <UtilityMenu />
+                    <PlayerBar />
+                </HStack>
+            </VStack>
+        </Container>
+    )
 }

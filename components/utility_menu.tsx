@@ -163,7 +163,7 @@ export const NewTranscriptionButton = () => {
                             .then(resp_json => {
                               uiStore.newTranscription.startTranscription(resp_json.data.id);
                               // Handle successful upload response here
-                              console.log('File Transcribed` successfully:', uploadResponse);
+                              console.log('File Transcribed` started:', resp_json);
                               // Consider showing toast or updating UI here
                             })
                             .catch(error => {
@@ -190,7 +190,21 @@ export const NewTranscriptionButton = () => {
             }
         }
         else if (audioSource === 'url') {
-          
+          onClose();
+          fetch('/api/assemblyAI/start-transcription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ s3presignedurl: formData.get('audio_url') }),
+          })
+          .then(resp => resp.json())
+          .then(resp_json => {
+            uiStore.newTranscription.startTranscription(resp_json.data.id);
+            // Handle successful upload response here
+            console.log('File Transcribed` successfully:', resp_json);
+            // Consider showing toast or updating UI here
+          })
         }
     }
 

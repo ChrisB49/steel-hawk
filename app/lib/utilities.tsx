@@ -12,6 +12,12 @@ import { parseUrl } from "@smithy/url-parser";
 import { formatUrl } from "@aws-sdk/util-format-url";
 import { Hash } from "@smithy/hash-node";
 
+export function formatTime(seconds: number): string {
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+}
+
 export const createPresignedUrlWithoutClient = async ({ region, bucket, key }: { region: string; bucket: string; key: string }) => {
     const url = parseUrl(`https://${bucket}.s3.${region}.amazonaws.com/${key}`);
     const presigner = new S3RequestPresigner({
@@ -62,14 +68,6 @@ export function useGetOrSetDefaultRecordings() {
     const default_recording = new Recording(todays_date, "Chris Becak", "Default Recording", default_audio, default_transcript, [default_utterance]);
     recordingsStore.addRecording(default_recording);
     console.log("Added Default Recordings", default_recording)
-    //const huhu_test_data: dataJsonFormat = huhu_data;
-    //const george_test_data: dataJsonFormat = george_data;
-    //const test_2_data: dataJsonFormat = test_data;
-    //const dummy_dataset = [huhu_test_data, george_test_data, test_2_data];
-    //dummy_dataset.forEach((data) => {
-    //    const recording_object = createRecordingObjectsFromDataJson(data);
-    //    recordingsStore.addRecording(recording_object);
-    //});
     return default_recording;
 }
 
@@ -104,6 +102,7 @@ export function createRecordingObjectsFromDataJson(
         source = "url";
     }
     else {
+        console.log("Invalid data object passed to createRecordingObjectsFromDataJson", data);
         throw new Error("Invalid data object passed to createRecordingObjectsFromDataJson");
     }
     const audio_object = new Audio(source, data.audio_duration, data.audio_url);

@@ -19,6 +19,7 @@ class NewTranscription {
         const newRecording = createRecordingObjectsFromDataJson(assemblyAIData);
         recordingsStore.addRecording(newRecording);
         recordingsStore.setCurrentRecording(newRecording);
+        console.log('New Recording added to recording store', newRecording);
 
         this.transcriptionId = null;
         this.isTranscribing = false;
@@ -70,9 +71,90 @@ class NewTranscription {
 class UIStore {
     confidenceDisplayThreshold: number = 0.85;
     newTranscription: NewTranscription = new NewTranscription();
+    currentlyPlayingURL: string | null = null;
+    volume: number = 0.5;
+    muted: boolean = false;
+    duration: number = 0;
+    seekPosition: number = 0;
+    userInitiatedSeekEvent: boolean = false;
+    playing: boolean = false;
+    playSpeed: number = 1;
+    looping: boolean = false;
 
-    constructor() {
-        makeAutoObservable(this);
+
+    toggleLooping() {
+        this.looping = !this.looping;
+    }
+
+    setPlaySpeed(speed: number) {
+        this.playSpeed = speed;
+    }
+
+    changePlaySpeed() {
+        // Define the array of speeds
+        const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3];
+        const currentSpeedIndex = speeds.indexOf(this.playSpeed);
+        // If the current speed is the last one in the array, reset to the first speed; otherwise, go to the next speed
+        const newSpeedIndex = currentSpeedIndex === speeds.length - 1 ? 0 : currentSpeedIndex + 1;
+        this.playSpeed = speeds[newSpeedIndex];
+    }
+
+    togglePlaying() {
+        this.playing = !this.playing;
+    }
+
+    setSeekPosition(position: number) {
+        this.seekPosition = position;
+        if (this.userInitiatedSeekEvent) {
+            this.userInitiatedSeekEvent = false;
+        }
+    }
+
+    userInitiatedSeek(time: number) {
+        this.seekPosition = time;
+        this.userInitiatedSeekEvent = true;
+        // Signal that the user has initiated a seek
+        // Optionally, you could use an event emitter or a callback here
+      }
+
+    forwardFifteenSeconds() {
+        this.seekPosition += 15;
+    }
+
+    backwardFifteenSeconds() {
+        this.seekPosition -= 15;
+    }
+
+    getSeekPosition() {
+        return this.seekPosition;
+    }
+
+    setDuration(duration: number) {
+        this.duration = duration;
+    }
+
+    getDuration() {
+        return this.duration;
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+    }
+
+    setVolume(volume: number) {
+        this.volume = volume;
+    }
+
+    getVolume() {
+        return this.volume;
+    }
+
+    setCurrentlyPlayingURL(url: string | null) {
+        this.currentlyPlayingURL = url;
+    }
+
+    getCurrentlyPlayingURL() {
+        return this.currentlyPlayingURL;
     }
 
     setConfidenceDisplayThreshold(value: number) {
@@ -83,6 +165,9 @@ class UIStore {
         return this.confidenceDisplayThreshold;
     }
 
+    constructor() {
+        makeAutoObservable(this);
+    }
     
 }
 

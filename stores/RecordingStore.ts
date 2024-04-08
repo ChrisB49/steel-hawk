@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { makeAutoObservable } from 'mobx';
+import { uiStore } from '@/stores/UIStore';
 // Domain Object
 export class Audio {
     source: string;
@@ -28,6 +29,16 @@ export class Audio {
             return this.url;
         }
     }
+
+    returnJSON() {
+        return {
+            source: this.source,
+            length: this.length,
+            url: this.url,
+            bitrate: this.bitrate,
+            numberOfSpeakers: this.numberOfSpeakers
+        }
+    }
 }
 
 export class Transcript {
@@ -38,6 +49,13 @@ export class Transcript {
         this.transcribedOn = transcribedOn;
         this.editLog = editLog;
         makeAutoObservable(this, {}, { autoBind: true });
+    }
+
+    returnJSON() {
+        return {
+            transcribedOn: this.transcribedOn,
+            editLog: this.editLog
+        }
     }
 }
 
@@ -82,6 +100,17 @@ export class Word {
 
     setText(text: string) {
         this.text = text;
+    }
+
+    returnJSON() {
+        return {
+            text: this.text,
+            start: this.start,
+            end: this.end,
+            speaker: this.speaker,
+            confidence: this.confidence,
+            channel: this.channel
+        }
     }
 }
 
@@ -138,6 +167,50 @@ export class Utterance {
         this.confidence = confidence;
     }
 
+    returnJSON() {
+        return {
+            utterance: this.utterance,
+            start: this.start,
+            end: this.end,
+            confidence: this.confidence,
+            speaker: this.speaker,
+            words: this.words.map(word => word.returnJSON()),
+            channel: this.channel
+        }
+    }
+
+}
+
+
+
+export class Recording {
+    created: Date;
+    creator?: any; // Define a more specific type based on your User/Company link
+    description: string;
+    audio: Audio;
+    transcription: Transcript;
+    utterances: Utterance[];
+
+    constructor(created: Date, creator: any, description: string, audio: Audio, transcription: Transcript, utterances: Omit<Utterance, 'constructor'>[]) {
+        this.created = created;
+        this.creator = creator;
+        this.description = description;
+        this.audio = new Audio(audio.source, audio.length, audio.url, audio.bitrate, audio.numberOfSpeakers);
+        this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog);
+        this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.words, utt.channel,));
+        makeAutoObservable(this, {}, { autoBind: true });
+    }
+
+    returnJSON() {
+        return {
+            created: this.created,
+            creator: this.creator,
+            description: this.description,
+            audio: this.audio.returnJSON(),
+            transcription: this.transcription.returnJSON(),
+            utterances: this.utterances.map(utt => utt.returnJSON()),
+        }
+    }
 }
 
 export class RecordingsStore {
@@ -160,6 +233,10 @@ export class RecordingsStore {
 
     setCurrentRecording(recording: Recording) {
         this.currentRecording = recording;
+        uiStore.setDuration(recording.audio.length);
+        uiStore.setPlaySpeed(1);
+        uiStore.setSeekPosition(0);
+        uiStore.setCurrentlyPlayingURL(recording.audio.url);
     }
 
     getCurrentRecording() {
@@ -172,24 +249,5 @@ export class RecordingsStore {
             return recording;
         }
         return null;
-    }
-}
-
-export class Recording {
-    created: Date;
-    creator?: any; // Define a more specific type based on your User/Company link
-    description: string;
-    audio: Audio;
-    transcription: Transcript;
-    utterances: Utterance[];
-
-    constructor(created: Date, creator: any, description: string, audio: Audio, transcription: Transcript, utterances: Omit<Utterance, 'constructor'>[]) {
-        this.created = created;
-        this.creator = creator;
-        this.description = description;
-        this.audio = new Audio(audio.source, audio.length, audio.url, audio.bitrate, audio.numberOfSpeakers);
-        this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog);
-        this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.words, utt.channel,));
-        makeAutoObservable(this, {}, { autoBind: true });
     }
 }
