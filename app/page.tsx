@@ -19,7 +19,7 @@ export default function Page() {
     recordingsStore.setCurrentRecording(useGetOrSetDefaultRecordings());
     return (
         <Container bg="black" minWidth="100%" minHeight="100vh">
-            <AudioPlayerNoSSR />
+            <AudioPlayerNoSSR recordingsStore={recordingsStore} />
             <VStack>
                 <HStack align="top" spacing={3}>
                     <VStack align="left" direction="column" pt={3} minW='15vw' minH='80vh'>

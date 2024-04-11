@@ -2,9 +2,10 @@ import { Container, Heading, Text, HStack, Wrap, WrapItem, Box } from "@chakra-u
 import { Utterance, Word } from "@/stores/RecordingStore";
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
+import { useEffect, useRef } from "react";
 
 
-export const EditorWord: React.FC<{ word: Word }> = observer(({ word }) => {
+export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: boolean }> = observer(({ word, index, isHighlighted }) => {
 
     function calculateColor(word: Word) {
         // Ensure confidence is within the expected range
@@ -37,7 +38,7 @@ export const EditorWord: React.FC<{ word: Word }> = observer(({ word }) => {
 
 
     return (
-        <Box rounded={10} p={1} bgGradient={gradient_radial}>
+        <Box rounded={10} p={1} bgGradient={gradient_radial} border={isHighlighted ? '2px solid blue' : 'none'}>
             <Text>{word.getText()}</Text>
         </Box>
     );
@@ -45,21 +46,31 @@ export const EditorWord: React.FC<{ word: Word }> = observer(({ word }) => {
 
 
 export const EditorRow: React.FC<{ utterance: Utterance, row_index: number }> = observer(({ utterance, row_index }) => {
+    const rowRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        console.log('Effect run for row:', row_index, 'Focused:', utterance.getFocused(), "ref:", rowRef.current);
+        if (utterance.getFocused() && rowRef.current) {
+            console.log('Scrolling into view:', row_index);
+            rowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }, [utterance.focused]);
 
     return (
-        <HStack align="center" key={row_index}>
-            <Text color="gray" fontSize={10}>{(utterance.start / 1000).toFixed(1)}s - {(utterance.end / 1000).toFixed(1)}s</Text>
-            <Container bg="gray.50" minW="90%" minH="auto" p={2} m={1} rounded={10} border="2px" borderColor="black">
-                <Heading size="sm">{utterance.speaker}</Heading>
-                <Wrap>
-                    {utterance.words && utterance.words.map((word, index) => (
-                        <WrapItem key={index}>
-                            <EditorWord word={word}></EditorWord>
-                        </WrapItem>
-                    ))}
-                </Wrap>
-            </Container>
-        </HStack>
+        <div ref={rowRef}> {/* Ensure that the ref is attached to the DOM element */}
+            <HStack align="center" key={row_index}>
+                <Text color="gray" fontSize={10}>{(utterance.start / 1000).toFixed(1)}s - {(utterance.end / 1000).toFixed(1)}s</Text>
+                <Container bg="gray.50" minW="90%" minH="auto" p={2} m={1} rounded={10} border="2px" borderColor="black">
+                    <Heading size="sm">{utterance.speaker}</Heading>
+                    <Wrap>
+                        {utterance.words && utterance.words.map((word, index) => (
+                            <WrapItem key={index}>
+                                <EditorWord word={word} index={index} isHighlighted={word.getHighlighted()}></EditorWord>
+                            </WrapItem>
+                        ))}
+                    </Wrap>
+                </Container>
+            </HStack>
+        </div>
     );
 });

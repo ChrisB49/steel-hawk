@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
+import { RecordingsStore } from '@/stores/RecordingStore';
 
-export const AudioPlayer = observer(() => {
+export const AudioPlayer: React.FC<{ recordingsStore: RecordingsStore }> = observer(({recordingsStore}) => {
     const audioRef = useRef(new Audio());
     const lastUpdateTimeRef = useRef(0);
     useEffect(() => {
@@ -22,22 +23,6 @@ export const AudioPlayer = observer(() => {
             audioRef.current.pause();
         }
     }, [uiStore.playing]);
-
-    //useEffect(() => {
-    //    const handleSeek = (event: any) => {
-    //        if (!isNaN(uiStore.seekPosition)) {
-    //            audioRef.current.currentTime = uiStore.seekPosition;
-    //        }
-    //    };
-//
-    //    // Add event listener for seeking
-    //    audioRef.current.addEventListener('seeked', handleSeek);
-//
-    //    // Cleanup listener when component unmounts
-    //    return () => {
-    //        audioRef.current.removeEventListener('seeked', handleSeek);
-    //    };
-    //}, [uiStore.seekPosition]);
 
     useEffect(() => {
         // Define a function that updates the audio element's currentTime
@@ -65,16 +50,25 @@ export const AudioPlayer = observer(() => {
     const handleTimeUpdate = () => {
         const currentTime = audioRef.current.currentTime;
         const now = Date.now();
-        // Update only if more than 500ms have passed since the last update
-        if (now - lastUpdateTimeRef.current > 500) {
-            uiStore.setSeekPosition(currentTime); // Update UIStore's seek position only
-            lastUpdateTimeRef.current = now; // Update the last update time
-            console.log('Current time:', currentTime);
+        uiStore.setSeekPosition(currentTime); // Update UIStore's seek position only
+        lastUpdateTimeRef.current = now; // Update the last update time
+
+        const currentRecording = recordingsStore.getCurrentRecording();
+        const utterance = currentRecording ? currentRecording.getUtteranceByTime(currentTime) : null;
+        const word = utterance ? utterance.getWordByTime(currentTime) : null;
+        if (word) {
+            //first, unfocus the current utterance if it is different than the new one
+            const currentFocusedUtterance = currentRecording?.getCurrentlyFocusedUtterance();
+            if (currentFocusedUtterance != utterance) {
+                currentFocusedUtterance?.toggleFocus();
+                utterance?.toggleFocus();
+            }
+            const currentFocusedWord = currentFocusedUtterance?.getFocusedWord();
+            if (currentFocusedWord != word) {
+                currentFocusedWord?.toggleHighlighted();
+                word.toggleHighlighted();
+            }
         }
-    };
-    const handleSeek = (time: number) => {
-        // When the user seeks, update the currentTime of the audio element
-        audioRef.current.currentTime = time;
     };
 
     return (

@@ -65,7 +65,9 @@ export class Word {
     end: number;
     speaker: string;
     confidence: number;
+    highlighted: boolean;
     channel?: number;
+    
 
 
     constructor(text: string, start: number, end: number, speaker: string, confidence: number, channel?: number) {
@@ -74,6 +76,7 @@ export class Word {
         this.end = end;
         this.speaker = speaker;
         this.confidence = confidence;
+        this.highlighted = false;
         this.channel = channel;
         makeAutoObservable(this, {}, { autoBind: true });
     }
@@ -92,6 +95,14 @@ export class Word {
 
     setChannel(channel: number) {
         this.channel = channel;
+    }
+
+    toggleHighlighted() {
+        this.highlighted = !this.highlighted;
+    }
+
+    getHighlighted() {
+        return this.highlighted;
     }
 
     getText() {
@@ -122,6 +133,7 @@ export class Utterance {
     speaker: string;
     channel: number;
     words: Word[];
+    focused: boolean;
 
     constructor(utterance: string, start: number, end: number, confidence: number, speaker: string, words: Omit<Word, 'constructor'>[], channel?: number,) {
         this.utterance = utterance;
@@ -130,6 +142,7 @@ export class Utterance {
         this.confidence = confidence;
         this.speaker = speaker;
         this.channel = channel !== undefined ? channel : 0;
+        this.focused = false;
         this.words = words.map(word => new Word(word.text, word.start, word.end, word.speaker, word.confidence, this.channel));
         makeAutoObservable(this, {}, { autoBind: true });
     }
@@ -142,6 +155,29 @@ export class Utterance {
         this.words = words;
     }
 
+    getWordByTime(time: number) {
+        const word = this.words.find(word => word.start / 1000 <= time && word.end / 1000 >= time);
+        if (word) {
+            return word;
+        }
+        return null;
+    }
+
+    getFocusedWord() {
+        const word = this.words.find(word => word.highlighted);
+        if (word) {
+            return word;
+        }
+        return null;
+    }
+
+    toggleFocus() {
+        this.focused = !this.focused;
+    }
+
+    getFocused() {
+        return this.focused;
+    }
 
     getChannel() {
         return this.channel;
@@ -199,6 +235,14 @@ export class Recording {
         this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog);
         this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.words, utt.channel,));
         makeAutoObservable(this, {}, { autoBind: true });
+    }
+
+    getUtteranceByTime(time: number) {
+        return this.utterances.find(utt => utt.start / 1000 <= time && utt.end / 1000 >= time);
+    }
+
+    getCurrentlyFocusedUtterance() {
+        return this.utterances.find(utt => utt.focused);
     }
 
     returnJSON() {
