@@ -18,7 +18,7 @@ export class Audio {
         makeAutoObservable(this, {}, { autoBind: true });
     }
 
-    async getAudioUrl() {
+    async getAudioUrl(): Promise<string> {
         //if the audio is an url that is a s3 bucket, we need to get a presigned url that allows for GET.
         if (this.url.includes("s3") && this.url.includes("amazonaws.com")) {
             const response = await axios.get(`/api/s3/get-presigned-url?${this.url}`);
@@ -81,31 +81,31 @@ export class Word {
         makeAutoObservable(this, {}, { autoBind: true });
     }
 
-    getConfidence() {
+    getConfidence(): number {
         return this.confidence;
     }
 
-    setConfidence(confidence: number) {
+    setConfidence(confidence: number): void {
         this.confidence = confidence;
     }
 
-    getChannel() {
+    getChannel(): number | undefined {
         return this.channel;
     }
 
-    setChannel(channel: number) {
+    setChannel(channel: number): void {
         this.channel = channel;
     }
 
-    toggleHighlighted() {
+    toggleHighlighted(): void {
         this.highlighted = !this.highlighted;
     }
 
-    getHighlighted() {
+    getHighlighted(): boolean {
         return this.highlighted;
     }
 
-    getText() {
+    getText(): string {
         return this.text;
     }
 
@@ -147,15 +147,15 @@ export class Utterance {
         makeAutoObservable(this, {}, { autoBind: true });
     }
 
-    getWords() {
+    getWords(): Word[] {
         return this.words;
     }
 
-    setWords(words: Word[]) {
+    setWords(words: Word[]): void {
         this.words = words;
     }
 
-    getWordByTime(time: number) {
+    getWordByTime(time: number): Word | null {
         const word = this.words.find(word => word.start / 1000 <= time && word.end / 1000 >= time);
         if (word) {
             return word;
@@ -163,7 +163,7 @@ export class Utterance {
         return null;
     }
 
-    getFocusedWord() {
+    getFocusedWord(): Word | null {
         const word = this.words.find(word => word.highlighted);
         if (word) {
             return word;
@@ -171,39 +171,39 @@ export class Utterance {
         return null;
     }
 
-    toggleFocus() {
+    toggleFocus(): void {
         this.focused = !this.focused;
     }
 
-    getFocused() {
+    getFocused(): boolean {
         return this.focused;
     }
 
-    getChannel() {
+    getChannel(): number {
         return this.channel;
     }
 
-    setChannel(channel: number) {
+    setChannel(channel: number): void {
         this.channel = channel;
     }
 
-    getSpeaker() {
+    getSpeaker(): string {
         return this.speaker;
     }
 
-    setSpeaker(speaker: string) {
+    setSpeaker(speaker: string): void {
         this.speaker = speaker;
     }
 
-    getConfidence() {
+    getConfidence(): number {
         return this.confidence;
     }
 
-    setConfidence(confidence: number) {
+    setConfidence(confidence: number): void {
         this.confidence = confidence;
     }
 
-    returnJSON() {
+    returnJSON(): any {
         return {
             utterance: this.utterance,
             start: this.start,
