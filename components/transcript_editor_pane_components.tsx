@@ -35,10 +35,25 @@ export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: bo
 
     // Define the gradient from transparent -> solid -> transparent
     let gradient_radial = `radial-gradient(ellipse, ${solidColor} 50%, ${transparentColor} 100%)`;
-
+    
+    const handleClick = (e: { detail: any; }) => {
+        switch (e.detail) {
+          case 1:
+            console.log("click");
+            uiStore.userInitiatedSeek(word.start / 1000)
+            break;
+          case 2:
+            console.log("double click");
+            break;
+          case 3:
+            console.log("triple click");
+            break;
+        }
+      };
+      
 
     return (
-        <Box rounded={10} p={1} bgGradient={gradient_radial} border={isHighlighted ? '2px solid blue' : 'none'}>
+        <Box onClick={handleClick} rounded={10} p={1} bgGradient={gradient_radial} border={isHighlighted ? '2px solid blue' : 'none'}>
             <Text>{word.getText()}</Text>
         </Box>
     );

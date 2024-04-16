@@ -1,7 +1,7 @@
 import { Center, Container, Text, HStack, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Switch, Heading, VStack } from "@chakra-ui/react"
 import { AiOutlineFullscreen } from "react-icons/ai"
 import { FaPlay,FaPause } from "react-icons/fa"
-import { MdOutlineRepeat, MdOutlineSkipNext, MdOutlineVolumeUp, MdSkipPrevious } from "react-icons/md"
+import { MdOutlineRepeat, MdOutlineSkipNext, MdOutlineVolumeUp, MdOutlineVolumeOff, MdSkipPrevious } from "react-icons/md"
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
 import { formatTime } from "@/app/lib/utilities";
@@ -64,12 +64,30 @@ export const VolumeBar = observer(() => {
     const volume = uiStore.getVolume(); // Get current volume from UIStore
 
     const handleVolumeChange = (value: number) => {
+        if (value > 0){
+            uiStore.setMute(false);
+        }
         uiStore.setVolume(value / 100); // Set volume in UIStore (assuming the slider value is 0-100)
     };
 
+    const toggleMute = () => {
+        uiStore.toggleMute();
+    };
+
+    let volumeIcon;
+    if (uiStore.muted) {
+        volumeIcon = <MdOutlineVolumeOff color="gray" size="2em" onClick={toggleMute}/>;
+    }
+    else if (volume > 0) {
+        volumeIcon = <MdOutlineVolumeUp color="gray" size="2em" onClick={toggleMute}/>
+    }
+    else {
+        volumeIcon = <MdOutlineVolumeOff color="gray" size="2em" onClick={toggleMute}/>
+    }
+
     return (
         <HStack minW="5vw">
-            <MdOutlineVolumeUp color="gray" size="2em" />
+            {volumeIcon}
             <Slider
                 aria-label='volume-slider'
                 colorScheme='green'

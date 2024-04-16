@@ -6,6 +6,21 @@ import { RecordingsStore } from '@/stores/RecordingStore';
 export const AudioPlayer: React.FC<{ recordingsStore: RecordingsStore }> = observer(({recordingsStore}) => {
     const audioRef = useRef(new Audio());
     const lastUpdateTimeRef = useRef(0);
+
+    useEffect(() => {
+        if (audioRef.current) {
+          audioRef.current.loop = uiStore.looping;
+        }
+      }, [uiStore.looping]);
+
+       // Effect for volume and mute
+    useEffect(() => {
+        if (audioRef.current) {
+        audioRef.current.volume = uiStore.volume;
+        audioRef.current.muted = uiStore.muted;
+        }
+    }, [uiStore.volume, uiStore.muted]);
+
     useEffect(() => {
         // Load new audio source when URL changes
         const currentURL = uiStore.getCurrentlyPlayingURL();

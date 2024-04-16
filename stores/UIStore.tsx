@@ -137,7 +137,11 @@ class UIStore {
         return this.duration;
     }
 
-    toggleMute() {
+    setMute(muted: boolean): void {
+        this.muted = muted;
+    }
+
+    toggleMute(): void {
         this.muted = !this.muted;
     }
 
