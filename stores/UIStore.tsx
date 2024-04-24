@@ -80,7 +80,21 @@ class UIStore {
     playing: boolean = false;
     playSpeed: number = 1;
     looping: boolean = false;
+    currentlyEditedRow: number | null = null;
+    currentlyEditedWord: [number, number] | null = null;
 
+
+    resetUIState() {
+        this.newTranscription = new NewTranscription();
+        this.currentlyPlayingURL = null;
+        this.duration = 0;
+        this.seekPosition = 0;
+        this.userInitiatedSeekEvent = false;
+        this.playing = false;
+        this.looping = false;
+        this.currentlyEditedRow = null;
+        this.currentlyEditedWord = null;
+    }
 
     toggleLooping() {
         this.looping = !this.looping;
@@ -102,6 +116,33 @@ class UIStore {
     togglePlaying() {
         this.playing = !this.playing;
     }
+    
+    startEditingRow(row_index: number) {
+        this.currentlyEditedRow = row_index;
+        console.log("Editing row:", row_index);
+    }
+    
+    getEditingRow() {
+        return this.currentlyEditedRow;
+    }
+
+    stopEditingRow() {
+        this.currentlyEditedRow = null;
+        //TODO: Audit log stuff here
+    }
+
+    startEditingWord(row_index: number, word_index: number) {
+        this.currentlyEditedWord = [row_index, word_index];
+    }
+
+    getEditingWord() {
+        return this.currentlyEditedWord;
+    }
+
+    stopEditingWord() {
+        this.currentlyEditedWord = null;
+        //TODO: Audit log stuff here
+    }
 
     setSeekPosition(position: number) {
         this.seekPosition = position;
@@ -118,11 +159,11 @@ class UIStore {
       }
 
     forwardFifteenSeconds() {
-        this.seekPosition += 15;
+        this.userInitiatedSeek(this.seekPosition += 15);
     }
 
     backwardFifteenSeconds() {
-        this.seekPosition -= 15;
+        this.userInitiatedSeek(this.seekPosition -= 15);
     }
 
     getSeekPosition() {
@@ -171,6 +212,7 @@ class UIStore {
 
     constructor() {
         makeAutoObservable(this);
+        console.log("Created UIStore", this);
     }
     
 }

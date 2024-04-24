@@ -1,11 +1,15 @@
-import { Container, Heading, Text, HStack, Wrap, WrapItem, Box } from "@chakra-ui/react";
+import { Container, Heading, Text, HStack, Wrap, WrapItem, Box,Editable,
+    EditableInput,
+    EditableTextarea,
+    EditablePreview, } from "@chakra-ui/react";
 import { Utterance, Word } from "@/stores/RecordingStore";
+import { MdEditSquare, MdCheck  } from "react-icons/md";
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
 import { useEffect, useRef } from "react";
 
 
-export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: boolean }> = observer(({ word, index, isHighlighted }) => {
+export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: boolean, row_index: number }> = observer(({ word, index, isHighlighted, row_index }) => {
 
     function calculateColor(word: Word) {
         // Ensure confidence is within the expected range
@@ -44,6 +48,7 @@ export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: bo
             break;
           case 2:
             console.log("double click");
+            uiStore.startEditingWord(row_index, index);
             break;
           case 3:
             console.log("triple click");
@@ -52,11 +57,68 @@ export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: bo
       };
       
 
-    return (
-        <Box onClick={handleClick} rounded={10} p={1} bgGradient={gradient_radial} border={isHighlighted ? '2px solid blue' : 'none'}>
-            <Text>{word.getText()}</Text>
-        </Box>
-    );
+    const currentEditingWord = uiStore.getEditingWord();
+    if (currentEditingWord && currentEditingWord[0] === row_index && currentEditingWord[1] === index) {
+        return (
+        <Editable defaultValue={word.text} onSubmit={() => { uiStore.stopEditingWord() }}>
+            <EditablePreview />
+            <EditableInput />
+        </Editable>
+        );
+    }
+    else {
+        return (
+            <Box onClick={handleClick} rounded={10} p={1} bgGradient={gradient_radial} border={isHighlighted ? '2px solid blue' : 'none'}>
+                <Text>{word.getText()}</Text>
+            </Box>
+        )
+    }
+});
+
+export const EditorRowContents: React.FC<{ utterance: Utterance, row_index: number, isEditing: boolean }> = observer(({ utterance, row_index, isEditing }) => {
+    if (isEditing) {
+        return (
+            <Editable defaultValue={utterance.utterance} onSubmit={() => { uiStore.stopEditingRow() }}>
+                <EditablePreview />
+                <EditableTextarea />
+            </Editable>
+        )
+    }
+    else {
+        return (
+            <Wrap>
+                {utterance.words && utterance.words.map((word, index) => (
+                    <WrapItem key={index}>
+                        <EditorWord word={word} index={index} row_index={row_index} isHighlighted={word.getHighlighted()}></EditorWord>
+                    </WrapItem>
+                ))}
+            </Wrap>
+        )
+    }
+});
+
+
+export const EditRowIcon: React.FC<{ isEditing: boolean, row_index: number }> = observer(({ isEditing, row_index }) => {
+    const editRow = (e: { detail: any }) => {
+        if (uiStore.getEditingRow() === row_index) {
+            uiStore.stopEditingRow();
+        }
+        else {
+            uiStore.startEditingRow(row_index);
+        }
+    }
+
+
+    if (isEditing) {
+        return (
+            <MdCheck onClick={editRow}/>
+        )
+    }
+    else {
+        return (
+            <MdEditSquare onClick={editRow}/>
+        )
+    }
 });
 
 
@@ -71,19 +133,17 @@ export const EditorRow: React.FC<{ utterance: Utterance, row_index: number }> = 
         }
     }, [utterance.focused]);
 
+    
+    const isEditing = uiStore.getEditingRow() === row_index
+
     return (
         <div ref={rowRef}> {/* Ensure that the ref is attached to the DOM element */}
             <HStack align="center" key={row_index}>
                 <Text color="gray" fontSize={10}>{(utterance.start / 1000).toFixed(1)}s - {(utterance.end / 1000).toFixed(1)}s</Text>
+                <EditRowIcon isEditing={isEditing} row_index={row_index}/>
                 <Container bg="gray.50" minW="90%" minH="auto" p={2} m={1} rounded={10} border="2px" borderColor="black">
                     <Heading size="sm">{utterance.speaker}</Heading>
-                    <Wrap>
-                        {utterance.words && utterance.words.map((word, index) => (
-                            <WrapItem key={index}>
-                                <EditorWord word={word} index={index} isHighlighted={word.getHighlighted()}></EditorWord>
-                            </WrapItem>
-                        ))}
-                    </Wrap>
+                    <EditorRowContents utterance={utterance} row_index={row_index} isEditing={isEditing}/>
                 </Container>
             </HStack>
         </div>

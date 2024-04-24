@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createRecordingObjectsFromDataJson, dataJsonFormat } from '@/app/lib/utilities';
 import { useStore } from '@/app/providers';
 import { Recording } from '@/stores/RecordingStore';
+import { uiStore } from '@/stores/UIStore';
 
 export function RecordingSearch({ onSearch }: { onSearch: (value: string) => void }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +45,7 @@ export const RecordingSearchResults: React.FC<{ searchTerm: string }> = observer
             recordingsStore.addRecording(recording_obj);
         }
         recordingsStore.setCurrentRecording(recording_obj);
+        uiStore.resetUIState();
     }
     return (
         <Container rounded={10} bg='white' h='300px' w='100%'>
