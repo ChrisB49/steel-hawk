@@ -64,7 +64,7 @@ export function useGetOrSetDefaultRecordings() {
     const todays_date = new Date();
     const default_audio = new Audio("url", 100, "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
     const default_transcript = new Transcript(todays_date, []);
-    const default_utterance = new Utterance("Hello World", 0, 1, 1, "Chris Becak", []);
+    const default_utterance = new Utterance("Hello World", 0, 1, 1, "This application is under development, please do not share, record or forward to anyone, this is meant for the recipient only", []);
     const default_recording = new Recording(todays_date, "Chris Becak", "Default Recording", default_audio, default_transcript, [default_utterance]);
     recordingsStore.addRecording(default_recording);
     console.log("Added Default Recordings", default_recording)
