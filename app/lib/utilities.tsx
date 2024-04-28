@@ -74,6 +74,7 @@ export function useGetOrSetDefaultRecordings() {
 export interface dataJsonFormat {
     audio_url: string,
     author: string,
+    id: string,
     audio_duration: number,
     summary: string | null,
     utterances: Array<{
@@ -106,7 +107,7 @@ export function createRecordingObjectsFromDataJson(
         throw new Error("Invalid data object passed to createRecordingObjectsFromDataJson");
     }
     const audio_object = new Audio(source, data.audio_duration, data.audio_url);
-    const transcript_object = new Transcript(new Date(), []);
+    const transcript_object = new Transcript(new Date(), [], data.id);
     const utterances = data.utterances.map((utterance: any) => {
         const words = utterance.words.map((word: any) => {
             return new Word(word.text, word.start, word.end, word.speaker, word.confidence, word.channel);
@@ -118,4 +119,38 @@ export function createRecordingObjectsFromDataJson(
     }
     const recording_object = new Recording(new Date(), data.author || "Chris Becak", data.summary, audio_object, transcript_object, utterances);
     return recording_object;
+}
+
+
+export async function generateAndUploadJSONFileToS3(json_file_name: any, json_content: any) {
+    const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+    //TODO: REMOVE ME
+    console.log("AWS_REGION:", process.env.AWS_REGION);
+    console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
+    console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
+    const s3Client = new S3Client({
+        region: process.env.AWS_REGION || '',
+        credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+    });
+    // Specify the bucket name and the file name (key)
+    const bucketName = process.env.AWS_BUCKET_NAME || '';
+    const key = `${json_file_name}`;
+
+    // Upload the JSON content to S3
+    try {
+        const data = await s3Client.send(new PutObjectCommand({
+            Bucket: bucketName,
+            Key: key,
+            Body: json_content,
+            ContentType: 'application/json'
+        }));
+
+        console.log("Successfully uploaded JSON to S3:", data);
+    } catch (err) {
+        console.error("Error uploading JSON to S3:", err);
+        throw new Error("Error uploading JSON to S3");
+    }
 }

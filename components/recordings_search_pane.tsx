@@ -35,7 +35,7 @@ export const RecordingSearchResults: React.FC<{ searchTerm: string }> = observer
         return { id: index, title: recording.description || "Untitled", data: recording };
     });
 
-    function handleClick(item: { id: number, title: string, data: dataJsonFormat | Recording }) {
+    async function handleClick(item: { id: number, title: string, data: dataJsonFormat | Recording }) {
         let recording_obj = null;
         if (item.data instanceof Recording) {
             recording_obj = item.data;
@@ -44,7 +44,7 @@ export const RecordingSearchResults: React.FC<{ searchTerm: string }> = observer
             recording_obj = createRecordingObjectsFromDataJson(item.data);
             recordingsStore.addRecording(recording_obj);
         }
-        recordingsStore.setCurrentRecording(recording_obj);
+        await recordingsStore.setCurrentRecording(recording_obj);
         uiStore.resetUIState();
     }
     return (

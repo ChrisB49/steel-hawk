@@ -14,9 +14,9 @@ import { AudioPlayer } from '@/components/audio';
 const AudioPlayerNoSSR = dynamic(() => import('@/components/audio').then(mod => mod.AudioPlayer), {
     ssr: false,
   });
-export default function Page() {
+export default async function Page() {
     const recordingsStore = useStore().recordingsStore;
-    recordingsStore.setCurrentRecording(useGetOrSetDefaultRecordings());
+    await recordingsStore.setCurrentRecording(useGetOrSetDefaultRecordings());
     return (
         <Container bg="black" minWidth="100%" minHeight="100vh">
             <AudioPlayerNoSSR recordingsStore={recordingsStore} />

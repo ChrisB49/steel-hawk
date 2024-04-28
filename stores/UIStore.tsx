@@ -1,28 +1,31 @@
 import { createRecordingObjectsFromDataJson } from "@/app/lib/utilities";
 import { makeAutoObservable } from "mobx";
 import { useStore } from '@/app/providers';
-import { RecordingsStore } from "./RecordingStore";
+import { Recording, RecordingsStore } from "./RecordingStore";
 class NewTranscription {
     isTranscribing: boolean = false;
     isUploading: boolean = false;
     uploadingPercentage: number = 0;
     transcriptionId: string | null = null;
+    fileName: string = "";
     file: File | null = null;
     formFields: { [key: string]: string } = {};
 
-    startTranscription(transcriptionId: string) {
+    startTranscription(transcriptionId: string, fileName: string) {
         this.transcriptionId = transcriptionId;
+        this.fileName = fileName;
         this.isTranscribing = true;
     }
 
-    completeTranscription(assemblyAIData: any, recordingsStore: RecordingsStore) {
+    async completeTranscription(assemblyAIData: any, recordingsStore: RecordingsStore) {
+        assemblyAIData.audio_url = this.fileName;
         const newRecording = createRecordingObjectsFromDataJson(assemblyAIData);
         recordingsStore.addRecording(newRecording);
-        recordingsStore.setCurrentRecording(newRecording);
+        await recordingsStore.setCurrentRecording(newRecording);
         console.log('New Recording added to recording store', newRecording);
-
         this.transcriptionId = null;
         this.isTranscribing = false;
+        return newRecording.generateJSONFile();
     }
 
     startUpload() {

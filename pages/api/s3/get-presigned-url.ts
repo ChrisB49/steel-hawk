@@ -6,6 +6,7 @@ import { getPresignedUrlWithoutClient } from '@/app/lib/utilities';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'GET') {
         try {
+            console.log("getPresignedUrl", req.query.s3ObjectUrl)
             const s3ObjectUrlRaw = req.query.s3ObjectUrl;
             const s3ObjectUrl = Array.isArray(s3ObjectUrlRaw) ? s3ObjectUrlRaw[0] : s3ObjectUrlRaw || '';
             const signedGetUrlObject = await getPresignedUrlWithoutClient({

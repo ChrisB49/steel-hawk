@@ -13,6 +13,10 @@
             "webRoot": "${workspaceFolder}",
             "pathMappings": [
                 {
+                    "url": "webpack://_n_e/components",
+                    "path": "${workspaceFolder}/components"
+                },
+                {
                     "url": "webpack://_n_e",
                     "path": "${workspaceFolder}"
                 }
@@ -30,9 +34,9 @@
             "request": "launch",
             "command": "npm run dev",
             "serverReadyAction": {
-            "pattern": "- Local:.+(https?://.+)",
-            "uriFormat": "%s",
-            "action": "debugWithChrome"
+                "pattern": "- Local:.+(https?://.+)",
+                "uriFormat": "%s",
+                "action": "debugWithChrome"
             }
         }
     ]

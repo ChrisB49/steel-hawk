@@ -58,21 +58,21 @@ export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: bo
       
 
     const currentEditingWord = uiStore.getEditingWord();
-    if (currentEditingWord && currentEditingWord[0] === row_index && currentEditingWord[1] === index) {
-        return (
-        <Editable defaultValue={word.text} onSubmit={() => { uiStore.stopEditingWord() }}>
-            <EditablePreview />
-            <EditableInput />
-        </Editable>
-        );
+    if (currentEditingWord && currentEditingWord[0] === row_index) {
+        if (currentEditingWord[1] === index) {
+            return (
+            <Editable defaultValue={word.text} onSubmit={() => { uiStore.stopEditingWord() }}>
+                <EditablePreview />
+                <EditableInput />
+            </Editable>
+            );
+        }
     }
-    else {
-        return (
-            <Box onClick={handleClick} rounded={10} p={1} bgGradient={gradient_radial} border={isHighlighted ? '2px solid blue' : 'none'}>
-                <Text>{word.getText()}</Text>
-            </Box>
-        )
-    }
+    return (
+        <Box onClick={handleClick} rounded={10} p={1} bgGradient={gradient_radial} border={isHighlighted ? '2px solid blue' : 'none'}>
+            <Text>{word.getText()}</Text>
+        </Box>
+    )
 });
 
 export const EditorRowContents: React.FC<{ utterance: Utterance, row_index: number, isEditing: boolean }> = observer(({ utterance, row_index, isEditing }) => {
@@ -126,9 +126,7 @@ export const EditorRow: React.FC<{ utterance: Utterance, row_index: number }> = 
     const rowRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        console.log('Effect run for row:', row_index, 'Focused:', utterance.getFocused(), "ref:", rowRef.current);
         if (utterance.getFocused() && rowRef.current) {
-            console.log('Scrolling into view:', row_index);
             rowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
         }
     }, [utterance.focused]);

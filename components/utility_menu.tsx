@@ -31,7 +31,7 @@ export const UploadProgress = observer(() => {
         if (uiStore.newTranscription.isTranscribing) {
           try {
             console.log('Checking transcription status...');
-            const response = await await fetch(`/api/assemblyAI/get-status?transactionId=${transactionId}`);
+            const response = await fetch(`/api/assemblyAI/get-status?transactionId=${transactionId}`);
             if (response.ok) {
                 const { status,data } = await response.json();
                 let formData = uiStore.newTranscription.getFields();
@@ -43,14 +43,34 @@ export const UploadProgress = observer(() => {
                 }
                 if (status === 'completed') {
                     setIsPolling(false);
-                    uiStore.newTranscription.completeTranscription(data,recordingsStore);
+                    let { json_file_name, jsonContent } = await uiStore.newTranscription.completeTranscription(data,recordingsStore);
                     toast({
-                        title: "Transcription Completed",
-                        description: "Transcription Proccessed successfully",
-                        status: "success",
-                        duration: 5000,
-                        isClosable: true,
+                      title: "Transcription Completed",
+                      description: "Transcription Proccessed successfully",
+                      status: "success",
+                      duration: 5000,
+                      isClosable: true,
                     });
+                    const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
+                    // Create a FormData object and append the file Blob to it
+                    const formData = new FormData();
+                    formData.append('file', jsonBlob, json_file_name);
+                    
+                    // Send the FormData with the fetch request to your API endpoint
+                    fetch('/api/s3/upload-json', {
+                      method: 'POST',
+                      body: formData,
+                    })
+                    .then(response => {
+                      if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                      }
+                      return response.json();
+                    })
+                    .then(uploadResponse => {
+                      // Handle the successful upload response
+                      console.log('JSON file uploaded:', uploadResponse);
+                    });   
                 }
                 else {
                     console.log('Transcription not yet complete:', status);
@@ -144,7 +164,8 @@ export const NewTranscriptionButton = () => {
                     },
                     body: JSON.stringify({ filename: file.name }),
                 });
-    
+                let randomized_file_url = "";
+                let assembly_ai_transcript_id = "";
                 if (response.ok) {
                     response.json().then(({ signedPutUrlObject, signedGetUrlObject }) => {
                       // Perform the upload directly to the presignedURL
@@ -161,7 +182,9 @@ export const NewTranscriptionButton = () => {
                           })
                             .then(resp => resp.json())
                             .then(resp_json => {
-                              uiStore.newTranscription.startTranscription(resp_json.data.id);
+                              assembly_ai_transcript_id = resp_json.data.id;
+                              randomized_file_url = signedGetUrlObject.split("?")[0];
+                              let json_file = uiStore.newTranscription.startTranscription(assembly_ai_transcript_id, randomized_file_url);
                               // Handle successful upload response here
                               console.log('File Transcribed` started:', resp_json);
                               // Consider showing toast or updating UI here
@@ -199,11 +222,17 @@ export const NewTranscriptionButton = () => {
             body: JSON.stringify({ s3presignedurl: formData.get('audio_url') }),
           })
           .then(resp => resp.json())
-          .then(resp_json => {
-            uiStore.newTranscription.startTranscription(resp_json.data.id);
-            // Handle successful upload response here
-            console.log('File Transcribed` successfully:', resp_json);
-            // Consider showing toast or updating UI here
+          .then((resp_json): void => {
+            let randomized_file_url = formData.get('audio_url');
+            if (randomized_file_url instanceof File) {
+              console.log("how did this happen, randomized_file_url is a file")
+            }
+            else {
+              uiStore.newTranscription.startTranscription(resp_json.data.id, randomized_file_url || '');
+              // Handle successful upload response here
+              console.log('File Transcribed` successfully:', resp_json);
+              // Consider showing toast or updating UI here
+            }
           })
         }
     }

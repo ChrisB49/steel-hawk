@@ -18,10 +18,18 @@ export class Audio {
         makeAutoObservable(this, {}, { autoBind: true });
     }
 
+    getRawAudioUrl(): string {
+        return this.url;
+    }
+
+    isNammuS3AudioSource(): boolean {
+        return this.url.includes("s3") && this.url.includes("amazonaws.com") && (this.url.includes(process.env.AWS_BUCKET_NAME || '')); 
+    }
+
     async getAudioUrl(): Promise<string> {
         //if the audio is an url that is a s3 bucket, we need to get a presigned url that allows for GET.
-        if (this.url.includes("s3") && this.url.includes("amazonaws.com")) {
-            const response = await axios.get(`/api/s3/get-presigned-url?${this.url}`);
+        if (this.isNammuS3AudioSource()) {
+            const response = await axios.get(`/api/s3/get-presigned-url?s3ObjectUrl=${this.url}`);
             const response_data = response.data;
             return response_data.signedGetUrlObject;
         }
@@ -43,18 +51,21 @@ export class Audio {
 
 export class Transcript {
     transcribedOn: Date;
+    assemblyAITranscriptID?: string;
     editLog: any[]; // Define a more specific type based on your edit log structure
 
-    constructor(transcribedOn: Date, editLog: any[]) {
+    constructor(transcribedOn: Date, editLog: any[], assemblyAITranscriptID?: string) {
         this.transcribedOn = transcribedOn;
         this.editLog = editLog;
+        this.assemblyAITranscriptID = assemblyAITranscriptID;
         makeAutoObservable(this, {}, { autoBind: true });
     }
 
     returnJSON() {
         return {
             transcribedOn: this.transcribedOn,
-            editLog: this.editLog
+            editLog: this.editLog,
+            assemblyAITranscriptID: this.assemblyAITranscriptID
         }
     }
 }
@@ -232,7 +243,7 @@ export class Recording {
         this.creator = creator;
         this.description = description;
         this.audio = new Audio(audio.source, audio.length, audio.url, audio.bitrate, audio.numberOfSpeakers);
-        this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog);
+        this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog, transcription.assemblyAITranscriptID);
         this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.words, utt.channel,));
         makeAutoObservable(this, {}, { autoBind: true });
     }
@@ -243,6 +254,27 @@ export class Recording {
 
     getCurrentlyFocusedUtterance() {
         return this.utterances.find(utt => utt.focused);
+    }
+
+    generateJSONFile() {
+        let json_file_name = "";
+        if (this.audio.isNammuS3AudioSource()) {
+            //if the recording audio source is S3 based, we will name the JSON recording file the same name as the audio file it relates to
+            json_file_name = this.audio.getRawAudioUrl().split('/')[this.audio.getRawAudioUrl().split('/').length - 1];
+            json_file_name = json_file_name.split('.')[0] + ".json";
+        }
+        else {
+            //otherwise we will name the JSON recording file with the same id of the AssemblyAI transcription id
+            json_file_name = this.transcription.assemblyAITranscriptID + '.json';
+        }
+        //export newRecording object to JSON to be stored in S3 alongside the audio file
+        console.log("json_file_name", json_file_name)
+        //create the JSON file object in memory
+        const json_obj = this.returnJSON();
+        console.log("json_obj of recording", json_obj)
+        // Convert the JSON object to a string to be uploaded
+        const jsonContent = JSON.stringify(json_obj);
+        return { json_file_name, jsonContent };
     }
 
     returnJSON() {
@@ -275,12 +307,13 @@ export class RecordingsStore {
         return this.recordings;
     }
 
-    setCurrentRecording(recording: Recording) {
+    async setCurrentRecording(recording: Recording) {
         this.currentRecording = recording;
         uiStore.setDuration(recording.audio.length);
         uiStore.setPlaySpeed(1);
         uiStore.setSeekPosition(0);
-        uiStore.setCurrentlyPlayingURL(recording.audio.url);
+        const temporary_url = await recording.audio.getAudioUrl();
+        uiStore.setCurrentlyPlayingURL(temporary_url);
     }
 
     getCurrentRecording() {
