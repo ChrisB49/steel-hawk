@@ -1,13 +1,10 @@
 import { RecordingsStore, Recording, Audio, Transcript, Utterance, Word } from '@/stores/RecordingStore';
 import { useStore } from '@/app/providers';
-import { huhu_data } from '@/stores/huhu_test_data';
-import { george_data } from '@/stores/george_test_data';
-import { test_data } from '@/stores/test_data_2';
-import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { HttpRequest } from "@smithy/protocol-http";
 import {
   S3RequestPresigner,
 } from "@aws-sdk/s3-request-presigner";
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { parseUrl } from "@smithy/url-parser";
 import { formatUrl } from "@aws-sdk/util-format-url";
 import { Hash } from "@smithy/hash-node";
@@ -55,25 +52,26 @@ export const getPresignedUrlWithoutClient = async ({ s3ObjectUrl }: { s3ObjectUr
 }
 
 export function useGetOrSetDefaultRecordings() {
-    console.log("getOrSetDefaultRecordings")
     const recordingsStore = useStore().recordingsStore;
     const existing_default_recording = recordingsStore.getRecordingByDescription("Default Recording");
+    
     if (existing_default_recording) {
         return existing_default_recording;
+    }else {
+        const todays_date = new Date();
+        const default_audio = new Audio("url", 100, "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+        const default_transcript = new Transcript(todays_date, []);
+        const default_utterance = new Utterance("Hello World", 0, 1, 1, "Speaker", []);
+        const default_recording = new Recording(todays_date, "Chris Becak", "Default Recording", "The default recording that is loaded", default_audio, default_transcript, [default_utterance]);
+        recordingsStore.addRecording(default_recording);
+        return default_recording;
     }
-    const todays_date = new Date();
-    const default_audio = new Audio("url", 100, "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-    const default_transcript = new Transcript(todays_date, []);
-    const default_utterance = new Utterance("Hello World", 0, 1, 1, "This application is under development, please do not share, record or forward to anyone, this is meant for the recipient only", []);
-    const default_recording = new Recording(todays_date, "Chris Becak", "Default Recording", default_audio, default_transcript, [default_utterance]);
-    recordingsStore.addRecording(default_recording);
-    console.log("Added Default Recordings", default_recording)
-    return default_recording;
 }
 
 export interface dataJsonFormat {
     audio_url: string,
     author: string,
+    title: string,
     id: string,
     audio_duration: number,
     summary: string | null,
@@ -117,40 +115,19 @@ export function createRecordingObjectsFromDataJson(
     if (data.summary === null) {
         data.summary = "";
     }
-    const recording_object = new Recording(new Date(), data.author || "Chris Becak", data.summary, audio_object, transcript_object, utterances);
+    const recording_object = new Recording(new Date(), data.author || "Unknown Author", data.title, data.summary, audio_object, transcript_object, utterances);
     return recording_object;
 }
 
-
-export async function generateAndUploadJSONFileToS3(json_file_name: any, json_content: any) {
-    const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-    //TODO: REMOVE ME
-    console.log("AWS_REGION:", process.env.AWS_REGION);
-    console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
-    console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
-    const s3Client = new S3Client({
-        region: process.env.AWS_REGION || '',
-        credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-        },
+export function createRecordingObjectFromS3JSONData(data_obj: any) {
+    const audio_object = data_obj.audio
+    const transcript_object = data_obj.transcription
+    const utterances = data_obj.utterances.map((utterance: any) => {
+        const words = utterance.words.map((word: any) => {
+            return word;
+        });
+        return utterance;
     });
-    // Specify the bucket name and the file name (key)
-    const bucketName = process.env.AWS_BUCKET_NAME || '';
-    const key = `${json_file_name}`;
-
-    // Upload the JSON content to S3
-    try {
-        const data = await s3Client.send(new PutObjectCommand({
-            Bucket: bucketName,
-            Key: key,
-            Body: json_content,
-            ContentType: 'application/json'
-        }));
-
-        console.log("Successfully uploaded JSON to S3:", data);
-    } catch (err) {
-        console.error("Error uploading JSON to S3:", err);
-        throw new Error("Error uploading JSON to S3");
-    }
+    const recording_object = new Recording(data_obj.created, data_obj.creator, data_obj.title, data_obj.description, audio_object, transcript_object, utterances);
+    return recording_object;
 }

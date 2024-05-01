@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import formidable, {errors as formidableErrors} from 'formidable';
-import { generateAndUploadJSONFileToS3 } from '@/app/lib/utilities';
 import { Upload } from '@aws-sdk/lib-storage';
 import { PassThrough } from 'stream';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';

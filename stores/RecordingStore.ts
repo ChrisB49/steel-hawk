@@ -233,14 +233,16 @@ export class Utterance {
 export class Recording {
     created: Date;
     creator?: any; // Define a more specific type based on your User/Company link
+    title: string;
     description: string;
     audio: Audio;
     transcription: Transcript;
     utterances: Utterance[];
 
-    constructor(created: Date, creator: any, description: string, audio: Audio, transcription: Transcript, utterances: Omit<Utterance, 'constructor'>[]) {
+    constructor(created: Date, creator: any, title: string, description: string, audio: Audio, transcription: Transcript, utterances: Omit<Utterance, 'constructor'>[]) {
         this.created = created;
         this.creator = creator;
+        this.title = title;
         this.description = description;
         this.audio = new Audio(audio.source, audio.length, audio.url, audio.bitrate, audio.numberOfSpeakers);
         this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog, transcription.assemblyAITranscriptID);
@@ -281,6 +283,7 @@ export class Recording {
         return {
             created: this.created,
             creator: this.creator,
+            title: this.title,
             description: this.description,
             audio: this.audio.returnJSON(),
             transcription: this.transcription.returnJSON(),

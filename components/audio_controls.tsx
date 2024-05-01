@@ -1,3 +1,4 @@
+'use client';
 import { Center, Container, Text, HStack, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Switch, Heading, VStack } from "@chakra-ui/react"
 import { AiOutlineFullscreen } from "react-icons/ai"
 import { FaPlay,FaPause } from "react-icons/fa"
@@ -136,8 +137,6 @@ export const PlayerBar = observer(() => {
 
     // Update the icon depending on whether it's playing or not
     const playPauseIcon = uiStore.playing ? <FaPause color="white" size=".8em" onClick={handlePlayPause}/> : <FaPlay color="white" size=".8em" onClick={handlePlayPause}/>;
-    const formattedSeekPosition = formatTime(uiStore.getSeekPosition());
-    const formattedDuration = formatTime(uiStore.getDuration());
     return (
         <Center rounded={10} bg="Black" minH="20vh" minW="80vw">
             <HStack align="center">
@@ -154,9 +153,9 @@ export const PlayerBar = observer(() => {
                         </Container>
                     </HStack>
                     <HStack alignItems="center">
-                        <Text color="gray">{formattedSeekPosition}</Text>
+                        <Text color="gray">{formatTime(uiStore.getSeekPosition())}</Text>
                         <SeekBar />
-                        <Text color="gray">{formattedDuration}</Text>
+                        <Text color="gray">{formatTime(uiStore.getDuration())}</Text>
                     </HStack>
                 </VStack>
                 <GreenThresholdSlider />

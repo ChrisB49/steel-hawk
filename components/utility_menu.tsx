@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Button, useToast, Container, Link, VStack, HStack, Image, FormHelperText, Select, Heading, Progress } from '@chakra-ui/react'
 import { AddIcon, EditIcon } from '@chakra-ui/icons';
 import { useDisclosure } from '@chakra-ui/hooks';
@@ -40,6 +40,9 @@ export const UploadProgress = observer(() => {
                 }
                 if (formData["author"] !== ""){
                   data['author'] = formData["author"];                
+                }
+                if (formData["title"] !== ""){
+                  data['title'] = formData["title"];                
                 }
                 if (status === 'completed') {
                     setIsPolling(false);

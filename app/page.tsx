@@ -1,8 +1,8 @@
-'use client'
+'use client';
 import { Container, Flex, Text, Link, Stack, VStack, HStack, Heading, } from '@chakra-ui/react'
 import dynamic from 'next/dynamic';
 
-import { RecordingPane } from "@/components/recordings_search_pane";
+import { RecordingPane, retrieve_one_more_recording } from "@/components/recordings_search_pane";
 import { UtilityMenu } from '@/components/utility_menu';
 import { PlayerBar } from '@/components/audio_controls';
 import { EditorPane } from '@/components/transcript_editor';import { RecordingsStore, Recording, Audio, Transcript, Utterance } from '@/stores/RecordingStore';
@@ -16,7 +16,6 @@ const AudioPlayerNoSSR = dynamic(() => import('@/components/audio').then(mod => 
   });
 export default async function Page() {
     const recordingsStore = useStore().recordingsStore;
-    await recordingsStore.setCurrentRecording(useGetOrSetDefaultRecordings());
     return (
         <Container bg="black" minWidth="100%" minHeight="100vh">
             <AudioPlayerNoSSR recordingsStore={recordingsStore} />
