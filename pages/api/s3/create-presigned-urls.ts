@@ -10,7 +10,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             const { filename } = req.body; // Extract filename from the request body
             const fileExtension = filename.split('.').pop();
-            const fileKey = `${uuidv4()}.${fileExtension}`;
+            let fileKey = '';
+            if (fileExtension !== 'json') {
+                fileKey = `${uuidv4()}.${fileExtension}`;
+            }
+            else {
+                fileKey = filename;
+            }
             const [signedPutUrlObject, signedGetUrlObject] = await createPresignedUrlWithoutClient({
                 region: process.env.AWS_REGION || '',
                 bucket: process.env.AWS_BUCKET_NAME || '',

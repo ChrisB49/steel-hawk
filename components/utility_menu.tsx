@@ -45,35 +45,46 @@ export const UploadProgress = observer(() => {
                   data['title'] = formData["title"];                
                 }
                 if (status === 'completed') {
-                    setIsPolling(false);
-                    let { json_file_name, jsonContent } = await uiStore.newTranscription.completeTranscription(data,recordingsStore);
-                    toast({
-                      title: "Transcription Completed",
-                      description: "Transcription Proccessed successfully",
-                      status: "success",
-                      duration: 5000,
-                      isClosable: true,
-                    });
-                    const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
-                    // Create a FormData object and append the file Blob to it
-                    const formData = new FormData();
-                    formData.append('file', jsonBlob, json_file_name);
-                    
-                    // Send the FormData with the fetch request to your API endpoint
-                    fetch('/api/s3/upload-json', {
-                      method: 'POST',
-                      body: formData,
-                    })
-                    .then(response => {
-                      if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                      }
-                      return response.json();
-                    })
-                    .then(uploadResponse => {
-                      // Handle the successful upload response
-                      console.log('JSON file uploaded:', uploadResponse);
-                    });   
+                  setIsPolling(false);
+                  let { json_file_name, jsonContent } = await uiStore.newTranscription.completeTranscription(data, recordingsStore);
+                  toast({
+                    title: "Transcription Completed",
+                    description: "Transcription Processed successfully, Saving the Transcription now.",
+                    status: "success",
+                    duration: 5000,
+                    isClosable: true,
+                  });
+                  const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
+                
+                  // Request a presigned PUT URL from your server
+                  const presignedUrlResponse = await fetch('/api/s3/create-presigned-urls', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ filename: json_file_name }), // You need the filename to generate the presigned URL
+                  });
+                  
+                  if (!presignedUrlResponse.ok) {
+                    throw new Error(`HTTP error! status: ${presignedUrlResponse.status}`);
+                  }
+                  
+                  // Extract the presigned PUT URL from the response
+                  const { signedPutUrlObject } = await presignedUrlResponse.json();
+                  
+                  // Use the presigned PUT URL to upload the file directly from the client
+                  const uploadResponse = await fetch(signedPutUrlObject, {
+                    method: 'PUT',
+                    body: jsonBlob, // The actual JSON blob to be uploaded
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  });
+                
+                  if (!uploadResponse.ok) {
+                    throw new Error(`HTTP error! status: ${uploadResponse.status}`);
+                  }
+                  console.log('JSON file uploaded successfully');
                 }
                 else {
                     console.log('Transcription not yet complete:', status);

@@ -12,12 +12,13 @@ const s3Client = new S3Client({
 
 async function getMostRecentSavedRecordingFromS3(excluding: string[] | null) {
     const bucketName = process.env.AWS_BUCKET_NAME || '';
-
+    console.log("bucket name", bucketName);
+    console.log("S3 Client", s3Client);
     try {
         const command = new ListObjectsV2Command({
             Bucket: bucketName,
         });
-
+        console.log("command", command);
         const { Contents } = await s3Client.send(command);
 
         // Filter out files that are in the excluding array, if it is provided

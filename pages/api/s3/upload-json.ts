@@ -24,12 +24,6 @@ const s3Client = new S3Client({
 });
 
 const uploadStream = (file?: ExtendedVolatileFile | undefined) => {
-    
-    //TODO: REMOVE ME
-    console.log("AWS_REGION:", process.env.AWS_REGION);
-    console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
-    console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
-    
     // Specify the bucket name and the file name (key)
     const bucketName = process.env.AWS_BUCKET_NAME || '';
     const pass = new PassThrough();
