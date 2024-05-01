@@ -12,14 +12,17 @@ const s3Client = new S3Client({
 
 async function getMostRecentSavedRecordingFromS3(excluding: string[] | null) {
     const bucketName = process.env.AWS_BUCKET_NAME || '';
-    console.log("bucket name", bucketName);
-    console.log("S3 Client", s3Client);
+    //TODO: REMOVE ME
+    console.log("AWS_REGION:", process.env.AWS_REGION);
+    console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
+    console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
     try {
         const command = new ListObjectsV2Command({
             Bucket: bucketName,
         });
         console.log("command", command);
         const { Contents } = await s3Client.send(command);
+        console.log("Successfully got list of files in the bucket", Contents);
 
         // Filter out files that are in the excluding array, if it is provided
         const filteredContents = Contents?.filter((object) =>
