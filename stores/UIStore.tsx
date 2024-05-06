@@ -1,7 +1,7 @@
 import { createRecordingObjectsFromDataJson } from "@/app/lib/utilities";
 import { makeAutoObservable } from "mobx";
 import { useStore } from '@/app/providers';
-import { Recording, RecordingsStore } from "./RecordingStore";
+import { Recording, RecordingsStore, Utterance } from "./RecordingStore";
 class NewTranscription {
     isTranscribing: boolean = false;
     isUploading: boolean = false;
@@ -71,6 +71,48 @@ class NewTranscription {
     }
 }
 
+class EditSpeakerModal {
+    initialSpeakerName: string = "";
+    editedSpeakerName: string = "";
+    recording: Recording | null = null;
+    constructor(initialSpeakerName: string) {
+        this.initialSpeakerName = initialSpeakerName;
+    }
+
+    setSpeakerName(editedSpeakerName: string) {
+        this.editedSpeakerName = editedSpeakerName;
+    }
+
+    getInitialSpeakerName() {
+        return this.initialSpeakerName;
+    }
+
+    modalOpened(utterance: Utterance, recording: Recording) {
+        this.initialSpeakerName = utterance.speaker;
+        this.recording = recording;
+    }
+
+    modalClosed(recording: Recording, utterance_index: number, global_change: boolean) {
+        //code to save the changes here
+        if (global_change) {
+            //change every utterance the speaker is in to the new name
+           for (let i = 0; i < recording.utterances.length; i++) {
+               if (recording.utterances[i].speaker === this.initialSpeakerName) {
+                   recording.utterances[i].speaker = this.editedSpeakerName;
+               }
+           }
+        }
+        else {
+            //change only the specific utterance
+            let utterance = recording.utterances[utterance_index];
+            utterance.speaker = this.editedSpeakerName;
+            recording.utterances[utterance_index] = utterance;
+        }
+        this.initialSpeakerName = "";
+        this.editedSpeakerName = "";
+        this.recording = null;
+    }
+}
 class UIStore {
     confidenceDisplayThreshold: number = 0.85;
     newTranscription: NewTranscription = new NewTranscription();

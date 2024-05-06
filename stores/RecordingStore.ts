@@ -279,6 +279,21 @@ export class Recording {
         return { json_file_name, jsonContent };
     }
 
+    updateSpeakerName(utteranceIndex: number, newSpeakerName: string, changeAll: boolean): void {
+        const recording = this;
+        if (!recording) return;
+        const originalSpeakerName = recording.utterances[utteranceIndex].speaker;
+        if (changeAll) {
+          recording.utterances.forEach((utt) => {
+            if (utt.speaker === originalSpeakerName) {
+              utt.speaker = newSpeakerName;
+            }
+          });
+        } else {
+          recording.utterances[utteranceIndex].speaker = newSpeakerName;
+        }
+    }
+
     returnJSON() {
         return {
             created: this.created,

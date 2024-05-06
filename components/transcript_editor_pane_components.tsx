@@ -1,12 +1,21 @@
 import { Container, Heading, Text, HStack, Wrap, WrapItem, Box,Editable,
     EditableInput,
     EditableTextarea,
-    EditablePreview, } from "@chakra-ui/react";
+    EditablePreview,
+    Modal,
+    ModalOverlay,
+    ModalHeader,
+    ModalContent,
+    ModalCloseButton,
+    ModalBody,
+    ModalFooter,
+    Button,
+    Input, } from "@chakra-ui/react";
 import { Utterance, Word } from "@/stores/RecordingStore";
 import { MdEditSquare, MdCheck  } from "react-icons/md";
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 
 export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: boolean, row_index: number }> = observer(({ word, index, isHighlighted, row_index }) => {
@@ -121,9 +130,56 @@ export const EditRowIcon: React.FC<{ isEditing: boolean, row_index: number }> = 
     }
 });
 
+interface EditSpeakerModalProps {
+    initialSpeakerName: string;
+    onSave: (newName: string, changeAll: boolean) => void;
+    onClose: () => void;
+  }
 
-export const EditorRow: React.FC<{ utterance: Utterance, row_index: number }> = observer(({ utterance, row_index }) => {
+  const EditSpeakerModal: React.FC<EditSpeakerModalProps> = ({ initialSpeakerName, onSave, onClose }) => {
+    const [speakerName, setSpeakerName] = useState(initialSpeakerName);
+
+    return (
+        <Modal isOpen={true} onClose={onClose}>
+            <ModalOverlay />
+            <ModalContent>
+                <ModalHeader>Edit Speaker Name</ModalHeader>
+                <ModalCloseButton />
+                <ModalBody>
+                    <Input
+                        value={speakerName}
+                        onChange={(e) => setSpeakerName(e.target.value)}
+                    />
+                </ModalBody>
+                <ModalFooter>
+                    <HStack>
+                        <Button colorScheme="blue" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button colorScheme="blue" onClick={() => onSave(speakerName, false)}>
+                            Change This One
+                        </Button>
+                        <Button colorScheme="blue" onClick={() => onSave(speakerName, true)}>
+                            Change All
+                        </Button>
+                    </HStack>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
+    );
+};
+
+interface EditorRowProps {
+    utterance: Utterance;
+    row_index: number;
+    updateSpeakerName: (index: number, newName: string, changeAll: boolean) => void;
+  }
+
+
+  export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_index, updateSpeakerName }) => {    
     const rowRef = useRef<HTMLDivElement>(null);
+    const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         if (utterance.getFocused() && rowRef.current) {
@@ -131,17 +187,68 @@ export const EditorRow: React.FC<{ utterance: Utterance, row_index: number }> = 
         }
     }, [utterance.focused]);
 
+
+    const openModal = () => {
+        setShowEditModal(true);
+    };
     
-    const isEditing = uiStore.getEditingRow() === row_index
+    // Function to close the modal
+    const closeModal = () => {
+        setShowEditModal(false);
+    };
+
+    const handleSpeakerNameChange = (newName: string, changeAll: boolean) => {
+        updateSpeakerName(row_index, newName, changeAll);
+        closeModal();
+    };
+    
+
+    const handleClick = (e: { detail: any; }) => {
+        console.log("click");
+    };
+
+    const handleMouseDown = () => {
+        const timer = setTimeout(() => {
+            console.log("Detected hold, triggering edit mode for speaker");
+            openModal();
+        }, 300); // Set the hold duration to 300ms
+        setHoldTimer(timer);
+    };
+
+    // Function to clear the hold event timer
+    const handleMouseUp = () => {
+        if (holdTimer) {
+            clearTimeout(holdTimer);
+            setHoldTimer(null);
+        }
+    };
+
+    
+    const isEditingRow = uiStore.getEditingRow() === row_index;
 
     return (
         <div ref={rowRef}> {/* Ensure that the ref is attached to the DOM element */}
             <HStack align="center" key={row_index}>
                 <Text color="gray" fontSize={10}>{(utterance.start / 1000).toFixed(1)}s - {(utterance.end / 1000).toFixed(1)}s</Text>
-                <EditRowIcon isEditing={isEditing} row_index={row_index}/>
+                <EditRowIcon isEditing={isEditingRow} row_index={row_index}/>
                 <Container bg="gray.50" minW="90%" minH="auto" p={2} m={1} rounded={10} border="2px" borderColor="black">
-                    <Heading size="sm">{utterance.speaker}</Heading>
-                    <EditorRowContents utterance={utterance} row_index={row_index} isEditing={isEditing}/>
+                        <Heading 
+                            size="sm" 
+                            onMouseDown={handleMouseDown} 
+                            onMouseUp={handleMouseUp} 
+                            onMouseLeave={handleMouseUp} 
+                            onClick={handleClick}
+                        >
+                            {utterance.speaker}
+                        </Heading>
+                        {showEditModal && (
+                            <EditSpeakerModal
+                                initialSpeakerName={utterance.speaker}
+                                onSave={handleSpeakerNameChange}
+                                onClose={closeModal}
+                            />
+                        )}
+                    <EditorRowContents utterance={utterance} row_index={row_index} isEditing={isEditingRow}/>
                 </Container>
             </HStack>
         </div>
