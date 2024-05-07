@@ -175,10 +175,64 @@ interface CommandBarProps {
 }
 
 export const CommandBar: React.FC<CommandBarProps> = observer(({current_recording}) => {
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+        if (!current_recording) {
+          console.error("No recording selected");
+          return;
+        }
+      
+        const { json_file_name, jsonContent } = current_recording.generateJSONFile(); // Generate JSON file content
+        
+        try {
+          // Request a presigned PUT URL from your server
+          const presignedUrlResponse = await fetch('/api/s3/create-presigned-urls', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ filename: json_file_name }),
+          });
+      
+          if (!presignedUrlResponse.ok) {
+            throw new Error(`HTTP error! status: ${presignedUrlResponse.status}`);
+          }
+      
+          const { signedPutUrlObject } = await presignedUrlResponse.json(); // Extract the presigned PUT URL
+      
+          // Use the presigned PUT URL to upload the file directly from the client
+          const uploadResponse = await fetch(signedPutUrlObject, {
+            method: 'PUT',
+            body: new Blob([jsonContent], { type: 'application/json' }), // The actual JSON blob to be uploaded
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+      
+          if (!uploadResponse.ok) {
+            throw new Error(`HTTP error! status: ${uploadResponse.status}`);
+          }
+      
+          console.log("File saved successfully");
+          setIsSaving(false);
+        } catch (error) {
+          console.error("Error saving file:", error);
+          setIsSaving(false);
+        }
+      };
+
+    useEffect(() => {
+        const autoSaveInterval = uiStore.getAutoSaveStatus() ? setInterval(handleSave, 60000) : null;
+
+        return () => {
+            if (autoSaveInterval) clearInterval(autoSaveInterval);
+        };
+    }, [uiStore.getAutoSaveStatus()]);
+
     const isAutoSaveActive = uiStore.getAutoSaveStatus();
-    function manualSave() {
-        console.log("Saving...");
-    }
 
     function deleteRecording() {
         console.log("Delete");
@@ -197,11 +251,12 @@ export const CommandBar: React.FC<CommandBarProps> = observer(({current_recordin
                 size="sm"
                 colorScheme="blue"
                 isActive={isAutoSaveActive}
+                isLoading={isSaving}
                 onClick={() => uiStore.toggleAutoSave()}
-            >
+                loadingText="Saving...">
                 Autosave
             </Button>
-            <Button size="sm" colorScheme="blue" onClick={manualSave}>Save</Button>
+            <Button size="sm" colorScheme="blue" onClick={handleSave} isLoading={isSaving} loadingText="Saving...">Save</Button>
             <Button size="sm" colorScheme="gray" onClick={() => uiStore.handleUndo(current_recording)} isDisabled={!uiStore.canUndo(current_recording)}>Undo</Button>
             <Button size="sm" colorScheme="gray" onClick={() => uiStore.handleRedo(current_recording)} isDisabled={!uiStore.canRedo(current_recording)}>Redo</Button>
             <Spacer />

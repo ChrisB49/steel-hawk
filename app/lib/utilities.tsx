@@ -128,6 +128,18 @@ export function createRecordingObjectFromS3JSONData(data_obj: any) {
         });
         return utterance;
     });
-    const recording_object = new Recording(data_obj.created, data_obj.creator, data_obj.title, data_obj.description, audio_object, transcript_object, utterances);
+    const actionHistory = data_obj.actionHistory || [];
+    const redoStack = data_obj.redoStack || [];
+    const recording_object = new Recording(
+        data_obj.created,
+        data_obj.creator,
+        data_obj.title,
+        data_obj.description,
+        audio_object,
+        transcript_object,
+        utterances,
+        actionHistory, 
+        redoStack 
+    );    
     return recording_object;
 }
