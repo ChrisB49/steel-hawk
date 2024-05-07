@@ -228,6 +228,21 @@ export class Utterance {
 
 }
 
+interface RenameSpeakerAction {
+    type: 'renameSpeaker';
+    originalSpeakerName: string;
+    newSpeakerName: string;
+    utteranceIndexes: number[]; // Indexes of the utterances where the speaker name was changed
+}
+  
+interface ModifyUtteranceAction {
+    type: 'modifyUtterance';
+    utteranceIndex: number;
+    originalUtterance: Utterance;
+    newUtterance: Utterance;
+}
+  
+type Action = RenameSpeakerAction | ModifyUtteranceAction;
 
 
 export class Recording {
@@ -238,6 +253,8 @@ export class Recording {
     audio: Audio;
     transcription: Transcript;
     utterances: Utterance[];
+    actionHistory: Action[] = [];
+  redoStack: Action[] = [];
 
     constructor(created: Date, creator: any, title: string, description: string, audio: Audio, transcription: Transcript, utterances: Omit<Utterance, 'constructor'>[]) {
         this.created = created;
@@ -282,15 +299,67 @@ export class Recording {
     updateSpeakerName(utteranceIndex: number, newSpeakerName: string, changeAll: boolean): void {
         const recording = this;
         if (!recording) return;
+
+        // Find the original speaker's name and the indexes of all affected utterances.
         const originalSpeakerName = recording.utterances[utteranceIndex].speaker;
+        const affectedUtteranceIndexes: number[] = [];
+
+        // Perform the update, keeping track of all changes.
         if (changeAll) {
-          recording.utterances.forEach((utt) => {
+            recording.utterances.forEach((utt, index) => {
             if (utt.speaker === originalSpeakerName) {
-              utt.speaker = newSpeakerName;
+                affectedUtteranceIndexes.push(index); // Track the index of the utterance being changed.
+                utt.speaker = newSpeakerName; // Actually update the speaker name.
             }
-          });
+            });
         } else {
-          recording.utterances[utteranceIndex].speaker = newSpeakerName;
+            recording.utterances[utteranceIndex].speaker = newSpeakerName;
+            affectedUtteranceIndexes.push(utteranceIndex); // Only this utterance index is affected.
+        }
+        // Record the action for undo/redo functionality.
+        this.recordAction({
+            type: 'renameSpeaker',
+            originalSpeakerName: originalSpeakerName,
+            newSpeakerName: newSpeakerName,
+            utteranceIndexes: affectedUtteranceIndexes
+        });
+    }
+
+    // Call this method whenever an action is taken that should be undoable
+    recordAction(action: Action) {
+        this.actionHistory.push(action);
+        this.redoStack = []; // Clear the redo stack on new action
+    }
+
+    undo() {
+        const lastAction = this.actionHistory.pop();
+        if (lastAction) {
+            this.applyAction(lastAction, 'undo');
+            this.redoStack.push(lastAction);
+        }
+    }
+
+    redo() {
+        const nextAction = this.redoStack.pop();
+        if (nextAction) {
+            this.applyAction(nextAction, 'redo');
+            this.actionHistory.push(nextAction);
+        }
+    }
+
+    // Apply the action to revert or redo the change
+    applyAction(action: Action, type: 'undo' | 'redo') {
+        switch (action.type) {
+            case 'renameSpeaker':
+              const speakerName = type === 'undo' ? action.originalSpeakerName : action.newSpeakerName;
+              action.utteranceIndexes.forEach(index => {
+                this.utterances[index].speaker = speakerName;
+              });
+              break;
+            case 'modifyUtterance':
+              const utterance = type === 'undo' ? action.originalUtterance : action.newUtterance;
+              this.utterances[action.utteranceIndex] = utterance;
+              break;
         }
     }
 

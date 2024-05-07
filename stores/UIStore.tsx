@@ -127,6 +127,7 @@ class UIStore {
     looping: boolean = false;
     currentlyEditedRow: number | null = null;
     currentlyEditedWord: [number, number] | null = null;
+    autosave: boolean = true;
 
 
     resetUIState() {
@@ -139,6 +140,7 @@ class UIStore {
         this.looping = false;
         this.currentlyEditedRow = null;
         this.currentlyEditedWord = null;
+        this.autosave = true;
     }
 
     toggleLooping() {
@@ -253,6 +255,28 @@ class UIStore {
 
     getConfidenceDisplayThreshold() {
         return this.confidenceDisplayThreshold;
+    }
+
+    getAutoSaveStatus() {
+        return this.autosave;
+    }
+    toggleAutoSave() {
+        this.autosave = !this.autosave;
+    }
+
+    canUndo(recording: Recording) {
+        return recording.actionHistory.length > 0;
+    }
+
+    canRedo(recording: Recording) {
+        return recording.redoStack.length > 0;
+    }
+    handleUndo(recording: Recording) {
+        recording.undo();
+    }
+
+    handleRedo(recording: Recording) {
+        recording.redo();
     }
 
     constructor() {

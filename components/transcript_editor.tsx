@@ -3,7 +3,7 @@ import React from 'react';
 import { Container, Heading, VStack, HStack, Text } from "@chakra-ui/react";
 import { RecordingsStore } from "@/stores/RecordingStore";
 import { observer } from 'mobx-react-lite';
-import { EditorRow } from '@/components/transcript_editor_pane_components';
+import { EditorRow, CommandBar } from '@/components/transcript_editor_pane_components';
 
 const HeadingInformationPane: React.FC<{ recording_store: RecordingsStore }> = observer(({ recording_store }) => {
     const current_recording = recording_store.getCurrentRecording();
@@ -26,6 +26,9 @@ export const EditorPane: React.FC<{ recording_store: RecordingsStore }> = observ
         <Container rounded={10} bg='white' minH="80vh" minW="70vw">
             <VStack align="center" direction="column" spacing={2} pt={4}>
                 <Heading size="md" color="gray">Transcript Editor</Heading>
+                <VStack bg='white' maxH="10vh" minW="60vw" align='left'>
+                    {current_recording && <CommandBar current_recording={current_recording} />}
+                </VStack>
                 <VStack bg='white' maxH="70vh" overflowY="auto" minW="60vw" align='left'>
                     <HeadingInformationPane recording_store={recording_store} />
                     {current_recording && current_recording.utterances.map((utterance, index) => (

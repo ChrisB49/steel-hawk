@@ -10,8 +10,9 @@ import { Container, Heading, Text, HStack, Wrap, WrapItem, Box,Editable,
     ModalBody,
     ModalFooter,
     Button,
-    Input, } from "@chakra-ui/react";
-import { Utterance, Word } from "@/stores/RecordingStore";
+    Input,
+    Spacer, } from "@chakra-ui/react";
+import { Recording, Utterance, Word } from "@/stores/RecordingStore";
 import { MdEditSquare, MdCheck  } from "react-icons/md";
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
@@ -169,6 +170,47 @@ interface EditSpeakerModalProps {
     );
 };
 
+interface CommandBarProps {
+    current_recording: Recording;
+}
+
+export const CommandBar: React.FC<CommandBarProps> = observer(({current_recording}) => {
+    const isAutoSaveActive = uiStore.getAutoSaveStatus();
+    function manualSave() {
+        console.log("Saving...");
+    }
+
+    function deleteRecording() {
+        console.log("Delete");
+    }
+
+    function undoAction() {
+        console.log("Undo");
+    }
+
+    function redoAction() {
+        console.log("Redo");
+    }
+    return (
+        <HStack>
+            <Button
+                size="sm"
+                colorScheme="blue"
+                isActive={isAutoSaveActive}
+                onClick={() => uiStore.toggleAutoSave()}
+            >
+                Autosave
+            </Button>
+            <Button size="sm" colorScheme="blue" onClick={manualSave}>Save</Button>
+            <Button size="sm" colorScheme="gray" onClick={() => uiStore.handleUndo(current_recording)} isDisabled={!uiStore.canUndo(current_recording)}>Undo</Button>
+            <Button size="sm" colorScheme="gray" onClick={() => uiStore.handleRedo(current_recording)} isDisabled={!uiStore.canRedo(current_recording)}>Redo</Button>
+            <Spacer />
+            
+            <Button size="sm" colorScheme="red" onClick={deleteRecording}>Delete</Button>
+        </HStack>
+    )
+});
+
 interface EditorRowProps {
     utterance: Utterance;
     row_index: number;
@@ -176,7 +218,7 @@ interface EditorRowProps {
   }
 
 
-  export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_index, updateSpeakerName }) => {    
+export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_index, updateSpeakerName }) => {    
     const rowRef = useRef<HTMLDivElement>(null);
     const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
