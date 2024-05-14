@@ -61,7 +61,7 @@ export function useGetOrSetDefaultRecordings() {
         const todays_date = new Date();
         const default_audio = new Audio("url", 100, "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
         const default_transcript = new Transcript(todays_date, []);
-        const default_utterance = new Utterance("Hello World", 0, 1, 1, "Speaker", []);
+        const default_utterance = new Utterance("Hello World", 0, 1, 1, "Speaker", "colloquy", []);
         const default_recording = new Recording(todays_date, "Chris Becak", "Default Recording", "The default recording that is loaded", default_audio, default_transcript, [default_utterance]);
         recordingsStore.addRecording(default_recording);
         return default_recording;
@@ -93,6 +93,36 @@ export interface dataJsonFormat {
     }>
 }
 
+export function determineUtteranceType(utterance: string, prev_utterance: string | null) {
+    //Checks if the utterance contains a question mark, if it does than it will be marked as a "question", if the previous utterance was not a question, then it will be marked as a "colloquy" IF AND ONLY IF the utterance is not a question.
+    if (prev_utterance !== null) {
+        if (prev_utterance.includes("?")) {
+            if (utterance.includes("?")) {
+                return "question";
+            }
+            else {
+                return "answer";
+            }
+        }
+        else {
+            if (utterance.includes("?")) {
+                return "question";
+            }
+            else {
+                return "colloquy";
+            }
+        }
+    }
+    else {
+        if (utterance.includes("?")) {
+            return "question";
+        }
+        else {
+            return "colloquy";
+        }
+    }
+}
+
 export function createRecordingObjectsFromDataJson(
     data: dataJsonFormat) {
 
@@ -106,11 +136,14 @@ export function createRecordingObjectsFromDataJson(
     }
     const audio_object = new Audio(source, data.audio_duration, data.audio_url);
     const transcript_object = new Transcript(new Date(), [], data.id);
+    let prev_utterance: string | null = null;
     const utterances = data.utterances.map((utterance: any) => {
         const words = utterance.words.map((word: any) => {
             return new Word(word.text, word.start, word.end, word.speaker, word.confidence, word.channel);
         });
-        return new Utterance(utterance.text, utterance.start, utterance.end, utterance.confidence, utterance.speaker, words, utterance.channel);
+        const utterance_type = determineUtteranceType(utterance.text, prev_utterance);
+        prev_utterance = utterance.text;
+        return new Utterance(utterance.text, utterance.start, utterance.end, utterance.confidence, utterance.speaker, utterance_type, words, utterance.channel);
     });
     if (data.summary === null) {
         data.summary = "";

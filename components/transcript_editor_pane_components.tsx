@@ -300,11 +300,11 @@ export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_in
     };
     
 
-    const handleClick = (e: { detail: any; }) => {
+    const handleClickSpeaker = (e: { detail: any; }) => {
         console.log("click");
     };
 
-    const handleMouseDown = () => {
+    const handleMouseDownSpeaker = () => {
         const timer = setTimeout(() => {
             console.log("Detected hold, triggering edit mode for speaker");
             openModal();
@@ -313,12 +313,19 @@ export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_in
     };
 
     // Function to clear the hold event timer
-    const handleMouseUp = () => {
+    const handleMouseUpSpeaker = () => {
         if (holdTimer) {
             clearTimeout(holdTimer);
             setHoldTimer(null);
         }
     };
+
+    const convertSecondsToTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        const formattedSeconds = remainingSeconds % 1 === 0 ? remainingSeconds : remainingSeconds.toFixed(2);
+        return `${minutes}:${formattedSeconds.toString() < '10' ? '0' : ''}${formattedSeconds}`;
+    }
 
     
     const isEditingRow = uiStore.getEditingRow() === row_index;
@@ -326,18 +333,24 @@ export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_in
     return (
         <div ref={rowRef}> {/* Ensure that the ref is attached to the DOM element */}
             <HStack align="center" key={row_index}>
-                <Text color="gray" fontSize={10}>{(utterance.start / 1000).toFixed(1)}s - {(utterance.end / 1000).toFixed(1)}s</Text>
+                <Text color="gray" fontSize={10}>{convertSecondsToTime(utterance.start / 1000)} - {convertSecondsToTime(utterance.end / 1000)}</Text>
+                <Spacer />
                 <EditRowIcon isEditing={isEditingRow} row_index={row_index}/>
                 <Container bg="gray.50" minW="90%" minH="auto" p={2} m={1} rounded={10} border="2px" borderColor="black">
-                        <Heading 
-                            size="sm" 
-                            onMouseDown={handleMouseDown} 
-                            onMouseUp={handleMouseUp} 
-                            onMouseLeave={handleMouseUp} 
-                            onClick={handleClick}
-                        >
-                            {utterance.speaker}
-                        </Heading>
+                        <HStack align="center" justify="left">
+                            <Heading 
+                                size="sm" 
+                                onMouseDown={handleMouseDownSpeaker} 
+                                onMouseUp={handleMouseUpSpeaker} 
+                                onMouseLeave={handleMouseUpSpeaker} 
+                                onClick={handleClickSpeaker}
+                            >
+                                {utterance.speaker}
+                            </Heading>
+                            <Heading>
+                                <Text fontSize="10px" color="gray.500">- {utterance.type}</Text>
+                            </Heading>
+                        </HStack>
                         {showEditModal && (
                             <EditSpeakerModal
                                 initialSpeakerName={utterance.speaker}

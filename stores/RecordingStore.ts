@@ -143,16 +143,18 @@ export class Utterance {
     end: number;
     confidence: number;
     speaker: string;
+    type: string;
     channel: number;
     words: Word[];
     focused: boolean;
 
-    constructor(utterance: string, start: number, end: number, confidence: number, speaker: string, words: Omit<Word, 'constructor'>[], channel?: number,) {
+    constructor(utterance: string, start: number, end: number, confidence: number, speaker: string, type: string, words: Omit<Word, 'constructor'>[], channel?: number,) {
         this.utterance = utterance;
         this.start = start;
         this.end = end;
         this.confidence = confidence;
         this.speaker = speaker;
+        this.type = type;
         this.channel = channel !== undefined ? channel : 0;
         this.focused = false;
         this.words = words.map(word => new Word(word.text, word.start, word.end, word.speaker, word.confidence, this.channel));
@@ -222,6 +224,7 @@ export class Utterance {
             end: this.end,
             confidence: this.confidence,
             speaker: this.speaker,
+            type: this.type,
             words: this.words.map(word => word.returnJSON()),
             channel: this.channel
         }
@@ -274,7 +277,8 @@ export class Recording {
         this.description = description;
         this.audio = new Audio(audio.source, audio.length, audio.url, audio.bitrate, audio.numberOfSpeakers);
         this.transcription = new Transcript(transcription.transcribedOn, transcription.editLog, transcription.assemblyAITranscriptID);
-        this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.words, utt.channel,));
+
+        this.utterances = utterances.map(utt => new Utterance(utt.utterance, utt.start, utt.end, utt.confidence, utt.speaker, utt.type, utt.words, utt.channel,));
         this.actionHistory = actionHistory; // Initialize the actionHistory
         this.redoStack = redoStack;
         makeAutoObservable(this, {}, { autoBind: true });
