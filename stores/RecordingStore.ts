@@ -342,6 +342,24 @@ export class Recording {
         });
     }
 
+    updateUtteranceType(utteranceIndex: number, newType: string): void {
+        const recording = this;
+        if (!recording) return;
+
+        // Find the original speaker's name and the indexes of all affected utterances.
+        const originalUtterance = recording.utterances[utteranceIndex];
+        const newUtterance = new Utterance(originalUtterance.utterance, originalUtterance.start, originalUtterance.end, originalUtterance.confidence, originalUtterance.speaker, newType, originalUtterance.words, originalUtterance.channel);
+        recording.utterances[utteranceIndex] = newUtterance;
+        // Record the action for undo/redo functionality.
+        this.recordAction({
+            type: 'modifyUtterance',
+            utteranceIndex: utteranceIndex,
+            originalUtterance: originalUtterance,
+            newUtterance: newUtterance
+        });
+
+    }
+
     // Call this method whenever an action is taken that should be undoable
     recordAction(action: Action) {
         this.actionHistory.push(action);
@@ -374,8 +392,9 @@ export class Recording {
               });
               break;
             case 'modifyUtterance':
-              const utterance = type === 'undo' ? action.originalUtterance : action.newUtterance;
-              this.utterances[action.utteranceIndex] = utterance;
+              const utterance_json = type === 'undo' ? action.originalUtterance : action.newUtterance;
+              const utterance_obj = new Utterance(utterance_json.utterance, utterance_json.start, utterance_json.end, utterance_json.confidence, utterance_json.speaker, utterance_json.type, utterance_json.words, utterance_json.channel);
+              this.utterances[action.utteranceIndex] = utterance_obj;
               break;
         }
     }

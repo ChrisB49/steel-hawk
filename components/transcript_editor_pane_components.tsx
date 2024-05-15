@@ -11,12 +11,14 @@ import { Container, Heading, Text, HStack, Wrap, WrapItem, Box,Editable,
     ModalFooter,
     Button,
     Input,
-    Spacer, } from "@chakra-ui/react";
+    Spacer,
+    VStack, } from "@chakra-ui/react";
 import { Recording, Utterance, Word } from "@/stores/RecordingStore";
 import { MdEditSquare, MdCheck  } from "react-icons/md";
 import { observer } from 'mobx-react-lite';
 import { uiStore } from '@/stores/UIStore';
 import { useEffect, useRef, useState } from "react";
+import { toJS } from "mobx";
 
 
 export const EditorWord: React.FC<{ word: Word, index: number, isHighlighted: boolean, row_index: number }> = observer(({ word, index, isHighlighted, row_index }) => {
@@ -95,6 +97,8 @@ export const EditorRowContents: React.FC<{ utterance: Utterance, row_index: numb
         )
     }
     else {
+        //print the words in the utterance
+        console.log("Utterance words: ", toJS(utterance.words));
         return (
             <Wrap>
                 {utterance.words && utterance.words.map((word, index) => (
@@ -170,6 +174,48 @@ interface EditSpeakerModalProps {
     );
 };
 
+const EditUtteranceTypeModal: React.FC<{
+    initialType: string;
+    onSave: (newType: string) => void;
+    onClose: () => void;
+  }> = ({ initialType, onSave, onClose }) => {
+    const [selectedType, setSelectedType] = useState(initialType.toLowerCase());
+  
+    useEffect(() => {
+      setSelectedType(initialType.toLowerCase());
+    }, [initialType]);
+  
+    return (
+      <Modal isOpen={true} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Utterance Type</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={0}> {/* Set spacing to 0 to have buttons touch each other */}
+              {['Question', 'Answer', 'Colloquy'].map((type) => (
+                <Button
+                  key={type}
+                  colorScheme={selectedType === type.toLowerCase() ? 'blue' : 'gray'}
+                  variant={selectedType === type.toLowerCase() ? 'solid' : 'outline'}
+                  onClick={() => onSave(type)}
+                  isDisabled={selectedType === type.toLowerCase()}
+                  _disabled={{
+                    bg: 'blue.300',
+                    color: 'white',
+                    cursor: 'not-allowed',
+                  }}
+                  width="100%"
+                >
+                  {type}
+                </Button>
+              ))}
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  };
 interface CommandBarProps {
     current_recording: Recording;
 }
@@ -238,13 +284,6 @@ export const CommandBar: React.FC<CommandBarProps> = observer(({current_recordin
         console.log("Delete");
     }
 
-    function undoAction() {
-        console.log("Undo");
-    }
-
-    function redoAction() {
-        console.log("Redo");
-    }
     return (
         <HStack>
             <Button
@@ -270,13 +309,31 @@ interface EditorRowProps {
     utterance: Utterance;
     row_index: number;
     updateSpeakerName: (index: number, newName: string, changeAll: boolean) => void;
+    updateUtteranceType: (index: number, newType: string) => void;
   }
 
 
-export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_index, updateSpeakerName }) => {    
+export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_index, updateSpeakerName, updateUtteranceType }) => {    
     const rowRef = useRef<HTMLDivElement>(null);
     const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showEditUtteranceTypeModal, setShowEditUtteranceTypeModal] = useState(false);
+    const [currentUtteranceType, setCurrentUtteranceType] = useState('');
+
+    const openUtteranceTypeEditModal = (utteranceType: string) => {
+    setCurrentUtteranceType(utteranceType);
+    setShowEditUtteranceTypeModal(true);
+    };
+
+    const closeUtteranceTypeEditModal = () => {
+    setShowEditUtteranceTypeModal(false);
+    };
+
+    const saveUtteranceType = (newType: string) => {
+    // Implement the logic to save the new utterance type to your data model here
+    updateUtteranceType(row_index, newType.toLowerCase());
+    closeUtteranceTypeEditModal();
+    };
 
     useEffect(() => {
         if (utterance.getFocused() && rowRef.current) {
@@ -327,6 +384,21 @@ export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_in
         return `${minutes}:${formattedSeconds.toString() < '10' ? '0' : ''}${formattedSeconds}`;
     }
 
+    const handleMouseDownUtteranceType = (utteranceType: string) => {
+        const timer = setTimeout(() => {
+            console.log("Detected hold, triggering edit mode for utterance type");
+            openUtteranceTypeEditModal(utteranceType); // You'll need to implement this function
+        }, 300); // Set the hold duration to 300ms
+        setHoldTimer(timer); // You'll need to manage a holdTimer state
+        };
+          
+        const handleMouseUpUtteranceType = () => {
+        if (holdTimer) {
+            clearTimeout(holdTimer);
+            setHoldTimer(null);
+        }
+        };
+
     
     const isEditingRow = uiStore.getEditingRow() === row_index;
 
@@ -348,7 +420,14 @@ export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_in
                                 {utterance.speaker}
                             </Heading>
                             <Heading>
-                                <Text fontSize="10px" color="gray.500">- {utterance.type}</Text>
+                                <Text 
+                                    fontSize="10px" 
+                                    color="gray.500" 
+                                    onMouseDown={() => handleMouseDownUtteranceType(utterance.type)}
+                                    onMouseUp={handleMouseUpUtteranceType}
+                                    onMouseLeave={handleMouseUpUtteranceType}
+                                >- {utterance.type}
+                                </Text>
                             </Heading>
                         </HStack>
                         {showEditModal && (
@@ -356,6 +435,13 @@ export const EditorRow: React.FC<EditorRowProps> = observer(({ utterance, row_in
                                 initialSpeakerName={utterance.speaker}
                                 onSave={handleSpeakerNameChange}
                                 onClose={closeModal}
+                            />
+                        )}
+                        {showEditUtteranceTypeModal && (
+                            <EditUtteranceTypeModal
+                                initialType={currentUtteranceType}
+                                onSave={saveUtteranceType}
+                                onClose={closeUtteranceTypeEditModal}
                             />
                         )}
                     <EditorRowContents utterance={utterance} row_index={row_index} isEditing={isEditingRow}/>

@@ -37,6 +37,7 @@ export const EditorPane: React.FC<{ recording_store: RecordingsStore }> = observ
                             utterance={utterance}
                             row_index={index}
                             updateSpeakerName={(index, newName, changeAll) => current_recording.updateSpeakerName(index, newName, changeAll)}
+                            updateUtteranceType={(index, newType) => current_recording.updateUtteranceType(index, newType)}
                         />
                     ))}
                 </VStack>
